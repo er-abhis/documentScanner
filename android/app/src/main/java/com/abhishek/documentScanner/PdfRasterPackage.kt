@@ -1,4 +1,4 @@
-package com.appinventiv.documentscanner
+package com.abhishek.documentScanner
 
 import com.facebook.react.ReactPackage
 import com.facebook.react.bridge.NativeModule

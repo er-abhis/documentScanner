@@ -154,6 +154,22 @@ export function ConvertScreen({ navigation }: RootScreenProps<'Convert'>) {
                 );
               })}
             </View>
+            <View style={styles.chips}>
+              {[0.25, 0.5, 0.75, 1].map(p => {
+                const on = Math.abs(scale - p) < 0.001;
+                return (
+                  <Pressable
+                    key={p}
+                    onPress={() => setScale(p)}
+                    style={[styles.chipSm, { backgroundColor: on ? theme.colors.brand : theme.colors.surfaceAlt, borderRadius: theme.radius.pill }]}
+                  >
+                    <Text variant="caption" style={{ color: on ? theme.colors.onBrand : theme.colors.textSecondary }}>
+                      {Math.round(p * 100)}%
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
             <Slider label="Scale" value={scale} min={0.1} max={1} onChange={setScale} format={v => `${Math.round(v * 100)}%`} />
 
             {format !== 'png' && (

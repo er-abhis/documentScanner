@@ -36,6 +36,7 @@ export type RootStackParamList = {
   About: undefined;
   Privacy: undefined;
   Faq: undefined;
+  AppGuide: undefined;
   // modal
   PagePreview: { uri: string; index: number; total: number };
 };

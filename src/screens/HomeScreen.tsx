@@ -5,7 +5,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import { ScanLine, ImagePlus, LayoutGrid, ChevronRight, Grid2x2, FilePen, RefreshCw, ChevronDown } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
-import { FolderOpen, FileText, Download, RotateCw, User, ShieldCheck, Coffee, Sparkles } from 'lucide-react-native';
+import { FolderOpen, FileText, Download, RotateCw, User, ShieldCheck, Coffee, Sparkles, BookOpen } from 'lucide-react-native';
 import { Screen } from '../components/Screen';
 import { Text } from '../components/Text';
 import { Button } from '../components/Button';
@@ -143,6 +143,7 @@ export function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
         title="Document Suite"
         onClose={() => setBrandMenu(false)}
         actions={[
+          { label: 'App Guide', icon: BookOpen, onPress: () => navigation.navigate('AppGuide') },
           { label: 'Features & FAQ', icon: Sparkles, onPress: () => navigation.navigate('Faq') },
           { label: 'About the developer', icon: User, onPress: () => navigation.navigate('About') },
           { label: 'Buy us a coffee', icon: Coffee, onPress: () => navigation.navigate('Coffee') },

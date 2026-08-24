@@ -1,4 +1,4 @@
-package com.appinventiv.documentscanner
+package com.abhishek.documentScanner
 
 import android.app.Application
 import com.facebook.react.PackageList

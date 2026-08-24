@@ -1,4 +1,4 @@
-package com.appinventiv.documentscanner
+package com.abhishek.documentScanner
 
 import android.graphics.Bitmap
 import android.graphics.Color

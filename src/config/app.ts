@@ -1,6 +1,6 @@
 // ponytail: app not published yet, so these URLs 404 until the listing is live.
 // Update APP_ID here if the applicationId changes (android/app/build.gradle).
-export const APP_ID = 'com.appinventiv.documentscanner';
+export const APP_ID = 'com.abhishek.documentScanner';
 export const APP_NAME = 'Document Suite';
 
 export const PLAY_STORE_WEB = `https://play.google.com/store/apps/details?id=${APP_ID}`;
