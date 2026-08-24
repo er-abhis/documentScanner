@@ -1,17 +1,17 @@
-import { useRef } from 'react';
 import {
   ActivityIndicator,
-  Animated,
   Pressable,
   StyleSheet,
   View,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import LinearGradient from 'react-native-linear-gradient';
 import type { LucideIcon } from 'lucide-react-native';
 import { Text } from './Text';
 import { MIN_TOUCH, useTheme } from '../theme';
+import { haptics } from '../lib/haptics';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type Size = 'md' | 'lg';
@@ -42,15 +42,12 @@ export function Button({
   accessibilityHint,
 }: Props) {
   const theme = useTheme();
-  const scale = useRef(new Animated.Value(1)).current;
+  const scale = useSharedValue(1);
   const isDisabled = disabled || loading;
 
-  const animate = (to: number) =>
-    Animated.timing(scale, {
-      toValue: to,
-      duration: theme.motion.duration.fast,
-      useNativeDriver: true,
-    }).start();
+  const aStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const pressIn = () => { scale.value = withSpring(0.96, { damping: 15, stiffness: 420 }); };
+  const pressOut = () => { scale.value = withSpring(1, { damping: 12, stiffness: 320 }); };
 
   const height = size === 'lg' ? 54 : 46;
   const fg =
@@ -62,54 +59,33 @@ export function Button({
           ? theme.colors.brand
           : theme.colors.text;
 
-  const inner = (
-    <>
-      {loading ? (
-        <ActivityIndicator color={fg} />
-      ) : (
-        <View style={styles.row}>
-          {Icon ? <Icon size={theme.iconSize.sm} color={fg} /> : null}
-          <Text variant="bodyStrong" style={{ color: fg }}>
-            {title}
-          </Text>
-        </View>
-      )}
-    </>
+  const inner = loading ? (
+    <ActivityIndicator color={fg} />
+  ) : (
+    <View style={styles.row}>
+      {Icon ? <Icon size={theme.iconSize.sm} color={fg} /> : null}
+      <Text variant="bodyStrong" style={{ color: fg }}>{title}</Text>
+    </View>
   );
 
-  const base: ViewStyle = {
-    height,
-    borderRadius: theme.radius.md,
-    opacity: isDisabled ? 0.5 : 1,
-    minHeight: MIN_TOUCH,
-  };
+  const base: ViewStyle = { height, borderRadius: theme.radius.md, minHeight: MIN_TOUCH };
 
   return (
-    <Animated.View
-      style={[{ transform: [{ scale }] }, fullWidth && styles.full, style]}
-    >
+    <Animated.View style={[aStyle, { opacity: isDisabled ? 0.5 : 1 }, fullWidth && styles.full, style]}>
       <Pressable
-        onPress={onPress}
+        onPress={() => { haptics.light(); onPress(); }}
         disabled={isDisabled}
-        onPressIn={() => animate(theme.motion.pressScale)}
-        onPressOut={() => animate(1)}
+        onPressIn={pressIn}
+        onPressOut={pressOut}
         accessibilityRole="button"
         accessibilityState={{ disabled: isDisabled, busy: loading }}
         accessibilityHint={accessibilityHint}
-        android_ripple={
-          variant === 'primary'
-            ? { color: '#FFFFFF33' }
-            : { color: theme.colors.border }
-        }
-        style={styles.pressable}
+        android_ripple={variant === 'primary' ? { color: '#FFFFFF33' } : { color: theme.colors.border }}
+        style={[styles.pressable, variant === 'primary' && theme.elevation(2)]}
       >
         {variant === 'primary' ? (
-          <LinearGradient
-            colors={theme.colors.brandGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[base, styles.center]}
-          >
+          <LinearGradient colors={theme.colors.brandGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[base, styles.center]}>
+            <LinearGradient colors={['#FFFFFF40', '#FFFFFF00']} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.gloss} pointerEvents="none" />
             {inner}
           </LinearGradient>
         ) : (
@@ -118,11 +94,9 @@ export function Button({
               base,
               styles.center,
               {
-                backgroundColor:
-                  variant === 'ghost' ? 'transparent' : theme.colors.surface,
+                backgroundColor: variant === 'ghost' ? 'transparent' : theme.colors.surface,
                 borderWidth: variant === 'ghost' ? 0 : StyleSheet.hairlineWidth,
-                borderColor:
-                  variant === 'danger' ? theme.colors.danger : theme.colors.borderStrong,
+                borderColor: variant === 'danger' ? theme.colors.danger : theme.colors.borderStrong,
               },
             ]}
           >
@@ -138,5 +112,6 @@ const styles = StyleSheet.create({
   full: { alignSelf: 'stretch' },
   pressable: { borderRadius: 14, overflow: 'hidden' },
   center: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 },
+  gloss: { position: 'absolute', top: 0, left: 0, right: 0, height: '52%' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
 });

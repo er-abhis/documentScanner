@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Modal, StyleSheet, TextInput, View } from 'react-native';
+import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
 import { Text } from './Text';
 import { Button } from './Button';
 import { useTheme } from '../theme';
@@ -23,9 +24,9 @@ export function TextInputModal({ visible, initial = '', title = 'Add text', onSu
   }, [visible, initial]);
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={[styles.backdrop, { backgroundColor: theme.colors.overlay }]}>
-        <View style={[styles.card, { backgroundColor: theme.colors.surface, borderRadius: theme.radius.xl }]}>
+    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
+      <Animated.View entering={FadeIn.duration(160)} style={[styles.backdrop, { backgroundColor: theme.colors.overlay }]}>
+        <Animated.View entering={ZoomIn.springify().damping(18).stiffness(200)} style={[styles.card, { backgroundColor: theme.colors.surface, borderRadius: theme.radius.xl }, theme.elevation(3)]}>
           <Text variant="title" style={styles.title}>{title}</Text>
           <TextInput
             value={value}
@@ -52,8 +53,8 @@ export function TextInputModal({ visible, initial = '', title = 'Add text', onSu
               }}
             />
           </View>
-        </View>
-      </View>
+        </Animated.View>
+      </Animated.View>
     </Modal>
   );
 }

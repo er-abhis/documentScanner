@@ -63,7 +63,7 @@ export async function shareText(text: string): Promise<boolean> {
 export async function shareFiles(uris: string[], mimeType: string): Promise<boolean> {
   try {
     const urls = await Promise.all(uris.map(u => toShareable(u)));
-    await Share.open({ urls, type: mimeType, failOnCancel: false });
+    await Share.open({ urls, type: mimeType, message: DOC_SHARE_FOOTER.trimStart(), failOnCancel: false });
     return true;
   } catch (e: unknown) {
     if (isCancel(e)) return false;

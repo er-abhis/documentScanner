@@ -22,6 +22,7 @@ import { OcrScreen } from '../screens/OcrScreen';
 import { CoffeeScreen } from '../screens/CoffeeScreen';
 import { AboutScreen } from '../screens/AboutScreen';
 import { PrivacyScreen } from '../screens/PrivacyScreen';
+import { FaqScreen } from '../screens/FaqScreen';
 import { EditorScreen } from '../screens/EditorScreen';
 import { AnnotateScreen } from '../screens/AnnotateScreen';
 import { PdfPreviewScreen } from '../screens/PdfPreviewScreen';
@@ -68,6 +69,7 @@ export function RootNavigator() {
         <Stack.Screen name="Coffee" component={CoffeeScreen} />
         <Stack.Screen name="About" component={AboutScreen} />
         <Stack.Screen name="Privacy" component={PrivacyScreen} />
+        <Stack.Screen name="Faq" component={FaqScreen} />
         <Stack.Screen name="Editor" component={EditorScreen} />
         <Stack.Screen name="Annotate" component={AnnotateScreen} />
         <Stack.Screen name="PdfPreview" component={PdfPreviewScreen} />

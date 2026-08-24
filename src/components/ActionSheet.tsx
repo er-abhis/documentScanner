@@ -1,8 +1,11 @@
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { FadeIn, SlideInDown } from 'react-native-reanimated';
 import type { LucideIcon } from 'lucide-react-native';
 import { Text } from './Text';
 import { useTheme } from '../theme';
+
+const ASheet = Animated.createAnimatedComponent(Pressable);
 
 export type SheetAction = {
   label: string;
@@ -22,10 +25,12 @@ type Props = {
 export function ActionSheet({ visible, title, actions, onClose }: Props) {
   const theme = useTheme();
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
+      <Animated.View entering={FadeIn.duration(160)} style={styles.flex}>
       <Pressable style={[styles.backdrop, { backgroundColor: theme.colors.overlay }]} onPress={onClose}>
-        <Pressable
-          style={[styles.sheet, { backgroundColor: theme.colors.surface, borderTopLeftRadius: theme.radius.lg, borderTopRightRadius: theme.radius.lg }]}
+        <ASheet
+          entering={SlideInDown.springify().damping(20).stiffness(200)}
+          style={[styles.sheet, { backgroundColor: theme.colors.surface, borderTopLeftRadius: theme.radius.lg, borderTopRightRadius: theme.radius.lg }, theme.elevation(3)]}
         >
           <SafeAreaView edges={['bottom']}>
             <View style={[styles.grabber, { backgroundColor: theme.colors.borderStrong }]} />
@@ -56,13 +61,15 @@ export function ActionSheet({ visible, title, actions, onClose }: Props) {
               </Pressable>
             ))}
           </SafeAreaView>
-        </Pressable>
+        </ASheet>
       </Pressable>
+      </Animated.View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   backdrop: { flex: 1, justifyContent: 'flex-end' },
   sheet: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8 },
   grabber: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 12 },

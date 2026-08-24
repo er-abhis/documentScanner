@@ -3,7 +3,7 @@ import { Alert, Pressable, StyleSheet, Switch, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   ChevronRight, Info, ShieldCheck, Share2, Star, RefreshCw, DownloadCloud,
-  Palette, Languages, Coffee, User,
+  Palette, Languages, Coffee, User, Sparkles,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { Screen } from '../components/Screen';
@@ -84,6 +84,7 @@ export function SettingsScreen({ navigation }: RootScreenProps<'Settings'>) {
       </Card>
 
       <Card style={styles.group}>
+        <Row icon={Sparkles} label="Features & FAQ" onPress={() => navigation.navigate('Faq')} />
         <Row icon={Coffee} label={t('settings.support')} onPress={() => navigation.navigate('Coffee')} />
         <Row icon={User} label="About the developer" onPress={() => navigation.navigate('About')} />
         <Row icon={ShieldCheck} label="Privacy policy" onPress={() => navigation.navigate('Privacy')} last />

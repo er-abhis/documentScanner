@@ -9,10 +9,11 @@ import { Slider } from '../components/Slider';
 import { EmptyState } from '../components/EmptyState';
 import { LoadingState } from '../components/LoadingState';
 import { pickImages } from '../services/gallery';
+import { saveToGallery } from '../services/gallery/save';
 import { type ImgFormat } from '../services/image/encode';
 import { processToFile, type ResizeRatio } from '../services/image/resize';
-import { saveDocument } from '../services/storage';
 import { shareFiles } from '../services/sharing';
+import { haptics } from '../lib/haptics';
 import { useTheme } from '../theme';
 import type { RootScreenProps } from '../types/navigation';
 
@@ -64,12 +65,14 @@ export function ConvertScreen({ navigation }: RootScreenProps<'Convert'>) {
     setProgress(0);
     try {
       const files = await convertAll();
-      for (const f of files) await saveDocument([{ uri: f }], `Converted ${format.toUpperCase()}`);
+      for (const f of files) await saveToGallery(f);
       setProgress(null);
-      navigation.navigate('Tabs', { screen: 'Documents' });
+      haptics.success();
+      const n = files.length;
+      Alert.alert('Saved to Photos', `${n} ${format.toUpperCase()} image${n === 1 ? '' : 's'} saved to your gallery.`);
     } catch {
       setProgress(null);
-      Alert.alert('Convert failed', 'Please try again.');
+      Alert.alert('Couldn’t save', 'Please allow gallery access and try again.');
     }
   };
 

@@ -7,6 +7,10 @@ import type { RootScreenProps } from '../types/navigation';
 
 const SECTIONS: { title: string; body: string }[] = [
   {
+    title: 'What this app does',
+    body: 'Document Suite lets you scan documents, edit and annotate PDFs, extract text with OCR, build photo collages, and convert or resize images — all on your device. See “Features & FAQ” for the full list.',
+  },
+  {
     title: 'On-device processing',
     body: 'Scanning, editing, OCR, PDF generation and every other feature run entirely on your device. Your documents and images never leave your phone.',
   },

@@ -35,6 +35,7 @@ export type RootStackParamList = {
   Coffee: undefined;
   About: undefined;
   Privacy: undefined;
+  Faq: undefined;
   // modal
   PagePreview: { uri: string; index: number; total: number };
 };
