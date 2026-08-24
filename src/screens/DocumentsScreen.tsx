@@ -88,7 +88,7 @@ export function DocumentsScreen({ navigation }: RootScreenProps<'Documents'>) {
   return (
     <Screen padded={false}>
       <View style={styles.head}>
-        <Header title="My Documents" onBack={() => navigation.goBack()} />
+        <Header title="My Documents" />
         {docs.length > 0 ? (
           <SearchBar value={query} onChangeText={setQuery} placeholder="Search documents" />
         ) : null}

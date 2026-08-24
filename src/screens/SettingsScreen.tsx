@@ -19,7 +19,7 @@ import type { RootScreenProps } from '../types/navigation';
 export function SettingsScreen({ navigation }: RootScreenProps<'Settings'>) {
   return (
     <Screen>
-      <Header title="Settings" onBack={() => navigation.goBack()} />
+      <Header title="Settings" />
       <Card style={styles.group}>
         <Row icon={Moon} label="Appearance" value="Follows system" />
         <Row icon={ShieldCheck} label="Processing" value="On-device only" />

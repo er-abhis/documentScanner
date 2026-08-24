@@ -1,102 +1,96 @@
+import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import LinearGradient from 'react-native-linear-gradient';
-import { FileText, ScanLine, Settings as SettingsIcon, ChevronRight, ImagePlus, Combine } from 'lucide-react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { ScanLine, ImagePlus, Combine, LayoutGrid, ChevronRight } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { Screen } from '../components/Screen';
 import { Text } from '../components/Text';
 import { Button } from '../components/Button';
+import { DocumentCard } from '../components/DocumentCard';
+import { useImportImages } from '../hooks/useImportImages';
+import { listDocuments, type DocumentMeta } from '../services/storage';
 import { useTheme } from '../theme';
-import { useDraft } from '../state/draft';
-import { pickImages } from '../services/gallery';
 import type { RootScreenProps } from '../types/navigation';
 
 export function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
   const theme = useTheme();
-  const { clear, addPages } = useDraft();
+  const importImages = useImportImages();
+  const [recent, setRecent] = useState<DocumentMeta[]>([]);
 
-  const importImages = async () => {
-    const uris = await pickImages();
-    if (uris.length === 0) return;
-    clear();
-    addPages(uris);
-    navigation.navigate('Pages');
-  };
+  useFocusEffect(
+    useCallback(() => {
+      listDocuments().then(list => setRecent(list.slice(0, 3)));
+    }, []),
+  );
 
   return (
     <Screen scroll>
       <View style={styles.heading}>
         <Text variant="label" color="brand">
-          DOCUMENT SCANNER
+          DOCUMENT SUITE
         </Text>
         <Text variant="display" style={styles.title}>
-          Scan anything,{'\n'}share instantly.
+          Scan, edit,{'\n'}share instantly.
         </Text>
       </View>
 
-      {/* Hero scan card */}
       <Animated.View entering={FadeInDown.delay(60).springify().damping(18)}>
-      <LinearGradient
-        colors={theme.colors.brandGradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.hero, { borderRadius: theme.radius.xl }, theme.elevation(2)]}
-      >
-        <View style={styles.heroIcon}>
-          <ScanLine size={26} color={theme.colors.onBrand} />
-        </View>
-        <Text variant="h2" style={{ color: theme.colors.onBrand }}>
-          Scan a document
-        </Text>
-        <Text
-          variant="callout"
-          style={[styles.heroSub, { color: theme.colors.onBrand }]}
+        <LinearGradient
+          colors={theme.colors.brandGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.hero, { borderRadius: theme.radius.xl }, theme.elevation(2)]}
         >
-          Auto edge-detection, crop and enhance — right on your device.
-        </Text>
-        <View style={styles.heroBtn}>
-          <Button
-            title="Scan Document"
-            icon={ScanLine}
-            variant="secondary"
-            fullWidth={false}
-            onPress={() => navigation.navigate('Scanner')}
-          />
-        </View>
-      </LinearGradient>
+          <View style={styles.heroIcon}>
+            <ScanLine size={26} color={theme.colors.onBrand} />
+          </View>
+          <Text variant="h2" style={{ color: theme.colors.onBrand }}>
+            Scan a document
+          </Text>
+          <Text variant="callout" style={[styles.heroSub, { color: theme.colors.onBrand }]}>
+            Auto edge-detection, crop and enhance — right on your device.
+          </Text>
+          <View style={styles.heroBtn}>
+            <Button
+              title="Scan Document"
+              icon={ScanLine}
+              variant="secondary"
+              fullWidth={false}
+              onPress={() => navigation.navigate('Scanner')}
+            />
+          </View>
+        </LinearGradient>
       </Animated.View>
 
       <Text variant="title" style={styles.sectionTitle}>
-        Create
+        Quick tools
       </Text>
-      <QuickRow
-        icon={ImagePlus}
-        label="Import Images"
-        hint="Turn photos into a document or PDF"
-        onPress={importImages}
-      />
-      <QuickRow
-        icon={Combine}
-        label="Join Images"
-        hint="Merge photos into one image"
-        onPress={() => navigation.navigate('Joiner')}
-      />
+      <QuickRow icon={ImagePlus} label="Image → PDF" hint="Photos to a shareable PDF" onPress={importImages} />
+      <QuickRow icon={Combine} label="Join Images" hint="Stack photos into one" onPress={() => navigation.navigate('Joiner')} />
+      <QuickRow icon={LayoutGrid} label="All Tools" hint="Every tool in one place" onPress={() => navigation.navigate('Tools')} />
 
-      <Text variant="title" style={styles.sectionTitle}>
-        Library
-      </Text>
-      <QuickRow
-        icon={FileText}
-        label="My Documents"
-        hint="View and manage scans"
-        onPress={() => navigation.navigate('Documents')}
-      />
-      <QuickRow
-        icon={SettingsIcon}
-        label="Settings"
-        hint="Preferences and about"
-        onPress={() => navigation.navigate('Settings')}
-      />
+      {recent.length > 0 && (
+        <>
+          <View style={styles.recentHead}>
+            <Text variant="title">Recent</Text>
+            <Pressable onPress={() => navigation.navigate('Documents')} accessibilityRole="button">
+              <Text variant="callout" color="brand">
+                See all
+              </Text>
+            </Pressable>
+          </View>
+          {recent.map(doc => (
+            <DocumentCard
+              key={doc.id}
+              doc={doc}
+              onOpen={d => navigation.navigate('Document', { id: d.id })}
+              onMore={d => navigation.navigate('Document', { id: d.id })}
+            />
+          ))}
+        </>
+      )}
     </Screen>
   );
 }
@@ -131,12 +125,7 @@ function QuickRow({
         theme.elevation(1),
       ]}
     >
-      <View
-        style={[
-          styles.rowIcon,
-          { backgroundColor: theme.colors.brandSubtle, borderRadius: theme.radius.md },
-        ]}
-      >
+      <View style={[styles.rowIcon, { backgroundColor: theme.colors.brandSubtle, borderRadius: theme.radius.md }]}>
         <Icon size={theme.iconSize.md} color={theme.colors.brand} />
       </View>
       <View style={styles.rowText}>
@@ -166,18 +155,8 @@ const styles = StyleSheet.create({
   heroSub: { marginTop: 6, opacity: 0.9, maxWidth: 260 },
   heroBtn: { marginTop: 18, alignSelf: 'flex-start' },
   sectionTitle: { marginBottom: 12 },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 14,
-    marginBottom: 12,
-  },
-  rowIcon: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
+  row: { flexDirection: 'row', alignItems: 'center', padding: 14, marginBottom: 12 },
+  rowIcon: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginRight: 14 },
   rowText: { flex: 1 },
+  recentHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, marginBottom: 12 },
 });

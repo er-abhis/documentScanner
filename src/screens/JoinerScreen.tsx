@@ -89,7 +89,10 @@ export function JoinerScreen({ navigation }: RootScreenProps<'Joiner'>) {
     try {
       const meta = await saveDocument([{ uri: preview }], 'Joined image');
       if (asPdf) await generateDocumentPdf(meta.id);
-      navigation.reset({ index: 1, routes: [{ name: 'Home' }, { name: 'Documents' }] });
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Tabs', state: { index: 1, routes: [{ name: 'Home' }, { name: 'Documents' }] } }],
+      });
     } catch {
       setBusy(false);
       Alert.alert('Couldn’t save', 'Please try again.');

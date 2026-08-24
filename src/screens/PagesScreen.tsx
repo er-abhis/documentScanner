@@ -7,7 +7,7 @@ import ReorderableList, {
   type ReorderableListReorderEvent,
 } from 'react-native-reorderable-list';
 import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
-import { GripVertical, Plus, Trash2, Crop, FileText } from 'lucide-react-native';
+import { GripVertical, Plus, Trash2, Crop, FileText, Pen } from 'lucide-react-native';
 import { Screen } from '../components/Screen';
 import { Header } from '../components/Header';
 import { Text } from '../components/Text';
@@ -32,8 +32,8 @@ export function PagesScreen({ navigation }: RootScreenProps<'Pages'>) {
       await saveDocument(pages);
       clear();
       navigation.reset({
-        index: 1,
-        routes: [{ name: 'Home' }, { name: 'Documents' }],
+        index: 0,
+        routes: [{ name: 'Tabs', state: { index: 1, routes: [{ name: 'Home' }, { name: 'Documents' }] } }],
       });
     } catch {
       setSaving(false);
@@ -68,6 +68,12 @@ export function PagesScreen({ navigation }: RootScreenProps<'Pages'>) {
 
   const edit = (page: DraftPage) =>
     navigation.navigate('Editor', {
+      uri: page.uri,
+      onDone: uri => replacePage(page.id, uri),
+    });
+
+  const draw = (page: DraftPage) =>
+    navigation.navigate('Annotate', {
       uri: page.uri,
       onDone: uri => replacePage(page.id, uri),
     });
@@ -112,6 +118,7 @@ export function PagesScreen({ navigation }: RootScreenProps<'Pages'>) {
             page={item}
             index={index}
             onEdit={() => edit(item)}
+            onDraw={() => draw(item)}
             onRemove={() => confirmRemove(item.id)}
             onPreview={() =>
               navigation.navigate('PagePreview', {
@@ -141,12 +148,14 @@ function PageRow({
   page,
   index,
   onEdit,
+  onDraw,
   onRemove,
   onPreview,
 }: {
   page: DraftPage;
   index: number;
   onEdit: () => void;
+  onDraw: () => void;
   onRemove: () => void;
   onPreview: () => void;
 }) {
@@ -184,12 +193,20 @@ function PageRow({
 
         <View style={styles.meta}>
           <Text variant="bodyStrong">Page {index + 1}</Text>
-          <Pressable onPress={onEdit} style={styles.editLink} hitSlop={HIT_SLOP}>
-            <Crop size={14} color={theme.colors.brand} />
-            <Text variant="callout" color="brand">
-              Edit
-            </Text>
-          </Pressable>
+          <View style={styles.links}>
+            <Pressable onPress={onEdit} style={styles.editLink} hitSlop={HIT_SLOP}>
+              <Crop size={14} color={theme.colors.brand} />
+              <Text variant="callout" color="brand">
+                Edit
+              </Text>
+            </Pressable>
+            <Pressable onPress={onDraw} style={styles.editLink} hitSlop={HIT_SLOP}>
+              <Pen size={14} color={theme.colors.brand} />
+              <Text variant="callout" color="brand">
+                Draw
+              </Text>
+            </Pressable>
+          </View>
         </View>
 
         <IconButton
@@ -220,7 +237,8 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', padding: 12 },
   thumb: { width: 56, height: 72, backgroundColor: '#00000010' },
   meta: { flex: 1, marginLeft: 14 },
-  editLink: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+  links: { flexDirection: 'row', gap: 16, marginTop: 4 },
+  editLink: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   handle: { padding: 6, marginLeft: 4 },
   footer: { padding: 20, borderTopWidth: StyleSheet.hairlineWidth },
   gap: { marginTop: 12 },

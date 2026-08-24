@@ -1,5 +1,6 @@
 import RNFS from 'react-native-fs';
 import { buildPdfBase64 } from '../pdf';
+import { rotateImage } from '../image/rotate';
 
 export type DocumentMeta = {
   id: string;
@@ -101,6 +102,52 @@ export async function saveDocument(
   };
   await writeIndex([meta, ...(await listDocuments())]);
   return meta;
+}
+
+/**
+ * Apply a page reorganization (reorder / rotate / duplicate / delete) to a
+ * saved document. `items` is the new page order; each references a current
+ * page filename plus a rotation in degrees. Writes a fresh page set, drops the
+ * old files, and regenerates the PDF. Returns the updated meta.
+ */
+export async function reorganizeDocument(
+  id: string,
+  items: { file: string; rotation: number }[],
+): Promise<DocumentMeta> {
+  if (items.length === 0) throw new Error('empty');
+  const list = await listDocuments();
+  const meta = list.find(d => d.id === id);
+  if (!meta) throw new Error('not_found');
+  const dir = docDir(id);
+  const stamp = Date.now();
+
+  const newFiles: string[] = [];
+  for (let i = 0; i < items.length; i++) {
+    const out = `p${i}_${stamp}.jpg`;
+    if (items[i].rotation % 360 !== 0) {
+      const rotated = await rotateImage(`file://${dir}/${items[i].file}`, items[i].rotation);
+      await RNFS.copyFile(strip(rotated), `${dir}/${out}`);
+    } else {
+      await RNFS.copyFile(`${dir}/${items[i].file}`, `${dir}/${out}`);
+    }
+    newFiles.push(out);
+  }
+
+  const updated: DocumentMeta = { ...meta, pageFiles: newFiles, pdfFile: undefined, updatedAt: stamp };
+  await writeIndex(list.map(d => (d.id === id ? updated : d)));
+
+  // drop old page files (distinct name prefix so no overlap with newFiles) + stale pdf
+  for (const f of meta.pageFiles) {
+    if (!newFiles.includes(f)) {
+      try { await RNFS.unlink(`${dir}/${f}`); } catch {}
+    }
+  }
+  if (meta.pdfFile) {
+    try { await RNFS.unlink(`${dir}/${meta.pdfFile}`); } catch {}
+  }
+
+  await generateDocumentPdf(id);
+  return updated;
 }
 
 export async function renameDocument(id: string, name: string) {

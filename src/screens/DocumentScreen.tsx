@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { Alert, FlatList, Image, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useFocusEffect } from '@react-navigation/native';
-import { FileText, Share2 } from 'lucide-react-native';
+import { FileText, Share2, LayoutGrid } from 'lucide-react-native';
 import { Screen } from '../components/Screen';
 import { Header } from '../components/Header';
 import { Text } from '../components/Text';
@@ -107,7 +107,14 @@ export function DocumentScreen({ route, navigation }: RootScreenProps<'Document'
           title={doc.name}
           onBack={() => navigation.goBack()}
           right={
-            <IconButton icon={Share2} onPress={shareDoc} accessibilityLabel="Share document" />
+            <View style={styles.headActions}>
+              <IconButton
+                icon={LayoutGrid}
+                onPress={() => navigation.navigate('Organize', { id })}
+                accessibilityLabel="Organize pages"
+              />
+              <IconButton icon={Share2} onPress={shareDoc} accessibilityLabel="Share document" />
+            </View>
           }
         />
         <Text variant="caption" color="textSecondary" style={styles.sub}>
@@ -161,6 +168,7 @@ export function DocumentScreen({ route, navigation }: RootScreenProps<'Document'
 
 const styles = StyleSheet.create({
   head: { paddingHorizontal: spacing.xl },
+  headActions: { flexDirection: 'row' },
   sub: { marginLeft: 4, marginBottom: spacing.sm },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   grid: { paddingHorizontal: spacing.xl, paddingBottom: spacing.xl },
