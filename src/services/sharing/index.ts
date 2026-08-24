@@ -48,6 +48,18 @@ export async function shareFile(
   }
 }
 
+/** Share several local files at once (e.g. batch-converted images). */
+export async function shareFiles(uris: string[], mimeType: string): Promise<boolean> {
+  try {
+    const urls = await Promise.all(uris.map(u => toShareable(u)));
+    await Share.open({ urls, type: mimeType, failOnCancel: false });
+    return true;
+  } catch (e: unknown) {
+    if (isCancel(e)) return false;
+    throw e;
+  }
+}
+
 export const sharePdf = (uri: string, name?: string) =>
   shareFile(uri, 'application/pdf', name, DOC_SHARE_FOOTER.trimStart());
 

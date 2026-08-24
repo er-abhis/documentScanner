@@ -26,32 +26,34 @@ export function CollageStudioScreen({ navigation }: RootScreenProps<'CollageStud
         </Text>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.cats}
-      >
-        {CATEGORIES.map(c => {
-          const active = c === cat;
-          return (
-            <Pressable
-              key={c}
-              onPress={() => setCat(c)}
-              style={[
-                styles.chip,
-                {
-                  backgroundColor: active ? theme.colors.brand : theme.colors.surfaceAlt,
-                  borderRadius: theme.radius.pill,
-                },
-              ]}
-            >
-              <Text variant="callout" style={{ color: active ? theme.colors.onBrand : theme.colors.textSecondary }}>
-                {c}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+      <View style={styles.catsWrap}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.cats}
+        >
+          {CATEGORIES.map(c => {
+            const active = c === cat;
+            return (
+              <Pressable
+                key={c}
+                onPress={() => setCat(c)}
+                style={[
+                  styles.chip,
+                  {
+                    backgroundColor: active ? theme.colors.brand : theme.colors.surface,
+                    borderColor: active ? theme.colors.brand : theme.colors.borderStrong,
+                  },
+                ]}
+              >
+                <Text variant="bodyStrong" numberOfLines={1} style={{ color: active ? theme.colors.onBrand : theme.colors.text }}>
+                  {c}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
 
       <ScrollView contentContainerStyle={styles.grid} showsVerticalScrollIndicator={false}>
         {list.map((t, i) => (
@@ -84,8 +86,16 @@ export function CollageStudioScreen({ navigation }: RootScreenProps<'CollageStud
 const styles = StyleSheet.create({
   head: { paddingHorizontal: 20 },
   sub: { marginBottom: 4, marginLeft: 4 },
-  cats: { paddingHorizontal: 20, paddingVertical: 12, gap: 8 },
-  chip: { paddingHorizontal: 16, paddingVertical: 8 },
+  catsWrap: { height: 60, justifyContent: 'center' },
+  cats: { paddingHorizontal: 20, gap: 10, alignItems: 'center' },
+  chip: {
+    height: 40,
+    paddingHorizontal: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
   grid: { paddingHorizontal: 20, paddingBottom: 24, flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
   card: { padding: 10, borderWidth: StyleSheet.hairlineWidth },
   thumbBox: { alignItems: 'center', justifyContent: 'center', padding: 10, overflow: 'hidden' },

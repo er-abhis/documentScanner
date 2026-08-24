@@ -65,26 +65,78 @@ export function saturation(s: number): ColorMatrix {
 
 export const grayscale = (): ColorMatrix => saturation(0);
 
-export type FilterKey = 'original' | 'document' | 'enhanced' | 'grayscale' | 'bw';
+/** Colour temperature: warmth>0 warms (more red, less blue); <0 cools. */
+export function temperature(warmth: number): ColorMatrix {
+  return [
+    1 + warmth, 0, 0, 0, 0,
+    0, 1, 0, 0, 0,
+    0, 0, 1 - warmth, 0, 0,
+    0, 0, 0, 1, 0,
+  ];
+}
+
+export function sepia(): ColorMatrix {
+  return [
+    0.393, 0.769, 0.189, 0, 0,
+    0.349, 0.686, 0.168, 0, 0,
+    0.272, 0.534, 0.131, 0, 0,
+    0, 0, 0, 1, 0,
+  ];
+}
+
+export type FilterKey =
+  | 'original'
+  | 'magic'
+  | 'document'
+  | 'color'
+  | 'enhanced'
+  | 'grayscale'
+  | 'bw'
+  | 'receipt'
+  | 'warm'
+  | 'cool'
+  | 'vivid'
+  | 'sepia';
 
 export const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'original', label: 'Original' },
+  { key: 'magic', label: 'Magic' },
   { key: 'document', label: 'Document' },
+  { key: 'color', label: 'Color' },
   { key: 'enhanced', label: 'Enhanced' },
   { key: 'grayscale', label: 'Grayscale' },
   { key: 'bw', label: 'B & W' },
+  { key: 'receipt', label: 'Receipt' },
+  { key: 'warm', label: 'Warm' },
+  { key: 'cool', label: 'Cool' },
+  { key: 'vivid', label: 'Vivid' },
+  { key: 'sepia', label: 'Sepia' },
 ];
 
 function base(key: FilterKey): ColorMatrix {
   switch (key) {
+    case 'magic':
+      return compose(saturation(1.15), compose(contrast(1.28), brightness(0.05)));
     case 'document':
       return compose(contrast(1.35), compose(saturation(0.5), brightness(0.06)));
+    case 'color':
+      return compose(saturation(1.1), compose(contrast(1.12), brightness(0.04)));
     case 'enhanced':
       return compose(saturation(1.25), compose(contrast(1.18), brightness(0.03)));
     case 'grayscale':
       return grayscale();
     case 'bw':
       return compose(contrast(2.1), compose(grayscale(), brightness(0.02)));
+    case 'receipt':
+      return compose(contrast(1.9), compose(saturation(0.15), brightness(0.12)));
+    case 'warm':
+      return compose(saturation(1.1), compose(temperature(0.12), brightness(0.02)));
+    case 'cool':
+      return compose(saturation(1.05), temperature(-0.12));
+    case 'vivid':
+      return compose(saturation(1.5), compose(contrast(1.22), brightness(0.02)));
+    case 'sepia':
+      return compose(contrast(1.1), sepia());
     case 'original':
     default:
       return IDENTITY;

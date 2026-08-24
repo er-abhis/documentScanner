@@ -56,6 +56,47 @@ export const TEMPLATES: Template[] = [
       f('e', 0.2, 0.68, 0.6, 0.32),
     ],
   },
+
+  // ---- more Grid
+  { id: 'g-9', name: 'Grid 9', category: 'Grid', ratio: '1:1', frames: Array.from({ length: 9 }, (_, i) => f(`${i}`, (i % 3) / 3, Math.floor(i / 3) / 3, 1 / 3, 1 / 3)) },
+  { id: 'g-2x3', name: 'Grid 6 Tall', category: 'Grid', ratio: '3:4', frames: Array.from({ length: 6 }, (_, i) => f(`${i}`, (i % 2) / 2, Math.floor(i / 2) / 3, 1 / 2, 1 / 3)) },
+  { id: 'g-1-2', name: 'One + Two', category: 'Grid', ratio: '1:1', frames: [f('a', 0, 0, 1, 0.55), f('b', 0, 0.55, 0.5, 0.45), f('c', 0.5, 0.55, 0.5, 0.45)] },
+  { id: 'g-2-1', name: 'Two + One', category: 'Grid', ratio: '1:1', frames: [f('a', 0, 0, 0.5, 0.45), f('b', 0.5, 0, 0.5, 0.45), f('c', 0, 0.45, 1, 0.55)] },
+
+  // ---- more Social
+  { id: 's-3v', name: 'Triptych', category: 'Social', ratio: '4:5', frames: [f('a', 0, 0, 1 / 3, 1), f('b', 1 / 3, 0, 1 / 3, 1), f('c', 2 / 3, 0, 1 / 3, 1)] },
+  { id: 's-5', name: 'Five Up', category: 'Social', ratio: '4:5', frames: [f('a', 0, 0, 0.5, 0.5), f('b', 0.5, 0, 0.5, 0.5), f('c', 0, 0.5, 1 / 3, 0.5), f('d', 1 / 3, 0.5, 1 / 3, 0.5), f('e', 2 / 3, 0.5, 1 / 3, 0.5)] },
+
+  // ---- more Story
+  { id: 'st-2', name: 'Story Duo', category: 'Story', ratio: '9:16', frames: [f('a', 0, 0, 1, 0.5), f('b', 0, 0.5, 1, 0.5)] },
+  { id: 'st-grid', name: 'Story Grid', category: 'Story', ratio: '9:16', frames: [f('a', 0, 0, 0.5, 0.5), f('b', 0.5, 0, 0.5, 0.5), f('c', 0, 0.5, 0.5, 0.5), f('d', 0.5, 0.5, 0.5, 0.5)] },
+
+  // ---- more Travel
+  { id: 't-filmstrip', name: 'Film Strip', category: 'Travel', ratio: '16:9', frames: Array.from({ length: 4 }, (_, i) => f(`${i}`, i / 4, 0, 1 / 4, 1)) },
+  { id: 't-hero', name: 'Big Feature', category: 'Travel', ratio: '4:3', frames: [f('a', 0, 0, 1, 0.66), f('b', 0, 0.66, 1 / 3, 0.34), f('c', 1 / 3, 0.66, 1 / 3, 0.34), f('d', 2 / 3, 0.66, 1 / 3, 0.34)] },
+
+  // ---- more Gallery (varied wall)
+  {
+    id: 'gal-6',
+    name: 'Salon Wall',
+    category: 'Gallery',
+    ratio: '1:1',
+    frames: [
+      f('a', 0, 0, 0.4, 0.55),
+      f('b', 0.42, 0, 0.58, 0.34),
+      f('c', 0.42, 0.36, 0.28, 0.32),
+      f('d', 0.72, 0.36, 0.28, 0.32),
+      f('e', 0, 0.57, 0.5, 0.43),
+      f('f', 0.52, 0.7, 0.48, 0.3),
+    ],
+  },
+  {
+    id: 'gal-mag',
+    name: 'Magazine',
+    category: 'Gallery',
+    ratio: '4:5',
+    frames: [f('a', 0, 0, 0.6, 0.6), f('b', 0.6, 0, 0.4, 0.3), f('c', 0.6, 0.3, 0.4, 0.3), f('d', 0, 0.6, 0.4, 0.4), f('e', 0.4, 0.6, 0.6, 0.4)],
+  },
 ];
 
 export const CATEGORIES = ['All', 'Classic', 'Grid', 'Social', 'Portrait', 'Story', 'Travel', 'Gallery'];

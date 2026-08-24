@@ -116,4 +116,7 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+
+    // Google Play In-App Updates (free, part of Play Core)
+    implementation("com.google.android.play:app-update:2.1.0")
 }

@@ -7,6 +7,7 @@ import {
   ImagePlus,
   Grid2x2,
   FolderOpen,
+  RefreshCw,
   type LucideIcon,
 } from 'lucide-react-native';
 import { Screen } from '../components/Screen';
@@ -33,6 +34,7 @@ export function ToolsScreen() {
         { icon: ScanLine, label: 'Scan Document', hint: 'Camera + auto edge detection', onPress: () => navigation.navigate('Scanner') },
         { icon: Grid2x2, label: 'Collage Studio', hint: 'Templates, frames, export', onPress: () => navigation.navigate('CollageStudio') },
         { icon: ImagePlus, label: 'Image → PDF', hint: 'Pick photos, reorder, export', onPress: importImages },
+        { icon: RefreshCw, label: 'Convert Image', hint: 'JPG · PNG · WEBP', onPress: () => navigation.navigate('Convert') },
       ],
     },
     {

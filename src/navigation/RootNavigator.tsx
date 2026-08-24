@@ -15,6 +15,8 @@ import { JoinerScreen } from '../screens/JoinerScreen';
 import { CollageStudioScreen } from '../screens/CollageStudioScreen';
 import { CollageEditorScreen } from '../screens/CollageEditorScreen';
 import { OrganizeScreen } from '../screens/OrganizeScreen';
+import { PdfEditorScreen } from '../screens/PdfEditorScreen';
+import { ConvertScreen } from '../screens/ConvertScreen';
 import { EditorScreen } from '../screens/EditorScreen';
 import { AnnotateScreen } from '../screens/AnnotateScreen';
 import { PdfPreviewScreen } from '../screens/PdfPreviewScreen';
@@ -54,6 +56,8 @@ export function RootNavigator() {
         <Stack.Screen name="CollageEditor" component={CollageEditorScreen} />
         <Stack.Screen name="Document" component={DocumentScreen} />
         <Stack.Screen name="Organize" component={OrganizeScreen} />
+        <Stack.Screen name="PdfEditor" component={PdfEditorScreen} />
+        <Stack.Screen name="Convert" component={ConvertScreen} />
         <Stack.Screen name="Editor" component={EditorScreen} />
         <Stack.Screen name="Annotate" component={AnnotateScreen} />
         <Stack.Screen name="PdfPreview" component={PdfPreviewScreen} />

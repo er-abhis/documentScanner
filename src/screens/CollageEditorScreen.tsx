@@ -175,7 +175,7 @@ export function CollageEditorScreen({ route, navigation }: RootScreenProps<'Coll
       }
       setBusy(false);
       if (mode === 'save') {
-        navigation.navigate('Documents');
+        navigation.navigate('Tabs', { screen: 'Documents' });
       }
     } catch {
       setBusy(false);
@@ -315,8 +315,20 @@ function ChipRow({ items, active, onPick }: { items: { key: string; label: strin
       {items.map(it => {
         const on = it.key === active;
         return (
-          <Pressable key={it.key} onPress={() => onPick(it.key)} style={[styles.chip, { backgroundColor: on ? theme.colors.brand : theme.colors.surfaceAlt, borderRadius: theme.radius.pill }]}>
-            <Text variant="callout" style={{ color: on ? theme.colors.onBrand : theme.colors.textSecondary }}>
+          <Pressable
+            key={it.key}
+            onPress={() => onPick(it.key)}
+            style={[
+              styles.chip,
+              {
+                backgroundColor: on ? theme.colors.brand : theme.colors.surface,
+                borderRadius: theme.radius.pill,
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: on ? theme.colors.brand : theme.colors.borderStrong,
+              },
+            ]}
+          >
+            <Text variant="bodyStrong" style={{ color: on ? theme.colors.onBrand : theme.colors.text }}>
               {it.label}
             </Text>
           </Pressable>
@@ -350,8 +362,8 @@ const styles = StyleSheet.create({
   panelBody: { paddingHorizontal: 16, minHeight: 64, justifyContent: 'center' },
   tabs: { paddingHorizontal: 12, paddingVertical: 8, gap: 6 },
   tab: { alignItems: 'center', justifyContent: 'center', gap: 2, paddingHorizontal: 14, paddingVertical: 6, minWidth: 64 },
-  chipRow: { gap: 8, paddingVertical: 4 },
-  chip: { paddingHorizontal: 16, paddingVertical: 8 },
+  chipRow: { gap: 8, paddingVertical: 4, alignItems: 'center' },
+  chip: { height: 38, paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center' },
   swatches: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   swatch: { width: 34, height: 34, borderRadius: 17 },
   exportBtns: { flexDirection: 'row', marginTop: 12 },

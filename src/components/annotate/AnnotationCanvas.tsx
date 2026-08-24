@@ -15,7 +15,7 @@ import type { Pt, Stroke, StrokeTool } from '../../services/annotate/types';
 type Props = {
   uri: string;
   strokes: Stroke[];
-  tool: StrokeTool | 'erase';
+  tool: StrokeTool | 'erase' | 'view';
   color: string;
   /** width fraction of the smaller side */
   width: number;
@@ -72,6 +72,7 @@ export function AnnotationCanvas({
   };
 
   const begin = (x: number, y: number) => {
+    if (tool === 'view') return;
     if (tool === 'erase') {
       const p = norm(x, y);
       if (p) onErase(p);
@@ -81,6 +82,7 @@ export function AnnotationCanvas({
     if (p) setLive([p]);
   };
   const extend = (x: number, y: number) => {
+    if (tool === 'view') return;
     if (tool === 'erase') {
       const p = norm(x, y);
       if (p) onErase(p);

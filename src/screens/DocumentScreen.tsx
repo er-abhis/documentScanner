@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { Alert, FlatList, Image, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useFocusEffect } from '@react-navigation/native';
-import { FileText, Share2, LayoutGrid } from 'lucide-react-native';
+import { FileText, Share2, LayoutGrid, Pen } from 'lucide-react-native';
 import { Screen } from '../components/Screen';
 import { Header } from '../components/Header';
 import { Text } from '../components/Text';
@@ -108,6 +108,11 @@ export function DocumentScreen({ route, navigation }: RootScreenProps<'Document'
           onBack={() => navigation.goBack()}
           right={
             <View style={styles.headActions}>
+              <IconButton
+                icon={Pen}
+                onPress={() => navigation.navigate('PdfEditor', { id })}
+                accessibilityLabel="Edit PDF"
+              />
               <IconButton
                 icon={LayoutGrid}
                 onPress={() => navigation.navigate('Organize', { id })}

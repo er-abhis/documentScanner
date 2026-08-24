@@ -1,4 +1,5 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { NavigatorScreenParams } from '@react-navigation/native';
 
 /** Tabs shown in the bottom navigation shell. */
 export type TabParamList = {
@@ -10,7 +11,7 @@ export type TabParamList = {
 };
 
 export type RootStackParamList = {
-  Tabs: undefined;
+  Tabs: NavigatorScreenParams<TabParamList>;
   // tab routes are also addressable from the stack (nested resolution)
   Home: undefined;
   Documents: undefined;
@@ -21,11 +22,14 @@ export type RootStackParamList = {
   Joiner: undefined;
   CollageStudio: undefined;
   CollageEditor: { templateId: string };
+  Convert: undefined;
   Document: { id: string };
   Organize: { id: string };
+  // edit an app document by id, OR external/rasterized pages by uri list
+  PdfEditor: { id: string } | { pages: string[]; name: string };
+  PdfPreview: { uri: string; name: string; editable?: boolean };
   Editor: { uri: string; onDone: (uri: string) => void };
   Annotate: { uri: string; onDone: (uri: string) => void };
-  PdfPreview: { uri: string; name: string };
   // modal
   PagePreview: { uri: string; index: number; total: number };
 };

@@ -7,7 +7,8 @@ import {
   BlendMode,
 } from '@shopify/react-native-skia';
 import RNFS from 'react-native-fs';
-import type { Stroke } from './types';
+import type { Stroke, TextItem } from './types';
+import { systemFont } from './font';
 
 /** Build a smoothed SkPath from normalized points scaled to (w,h) pixels. */
 export function buildPath(points: { x: number; y: number }[], w: number, h: number) {
@@ -55,6 +56,7 @@ export function strokePaint(stroke: Stroke, minSide: number) {
 export async function flattenAnnotations(
   uri: string,
   strokes: Stroke[],
+  texts: TextItem[] = [],
   quality = 92,
 ): Promise<string> {
   const img = Skia.Image.MakeImageFromEncoded(await Skia.Data.fromURI(uri));
@@ -70,6 +72,17 @@ export async function flattenAnnotations(
 
   for (const s of strokes) {
     canvas.drawPath(buildPath(s.points, w, h), strokePaint(s, minSide));
+  }
+  for (const t of texts) {
+    const px = t.size * minSide;
+    const font = systemFont(px);
+    if (!font) continue;
+    const paint = Skia.Paint();
+    paint.setColor(Skia.Color(t.color));
+    paint.setAlphaf(t.opacity);
+    paint.setAntiAlias(true);
+    // y is the text top; drawText uses the baseline, so offset by the ascent
+    canvas.drawText(t.text, t.x * w, t.y * h + px, paint, font);
   }
   surface.flush();
 

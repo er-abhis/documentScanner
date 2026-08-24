@@ -20,7 +20,19 @@ export type Stroke = {
   points: Pt[];
 };
 
-export type Annotation = Stroke; // room to add text/image/shape layer types later
+/** A text overlay placed on a page/image. Position is the text's top-left in
+ * normalized [0,1] coords; size is a fraction of the content's smaller side. */
+export type TextItem = {
+  id: string;
+  text: string;
+  x: number;
+  y: number;
+  size: number;
+  color: string;
+  opacity: number;
+};
+
+export type Annotation = Stroke | TextItem;
 
 /** default palette + sizes shared by the drawing toolbar */
 export const PEN_COLORS = ['#111111', '#E5484D', '#2B6BE4', '#2F9E44', '#F08C00', '#FFFFFF'];

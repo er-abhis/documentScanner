@@ -1,0 +1,64 @@
+import { Skia } from '@shopify/react-native-skia';
+import { encodeImageToFile, type ImgFormat } from './encode';
+
+export type ResizeRatio = 'original' | '1:1' | '4:3' | '3:4' | '16:9' | '9:16';
+
+const RATIO_AR: Record<Exclude<ResizeRatio, 'original'>, number> = {
+  '1:1': 1,
+  '4:3': 4 / 3,
+  '3:4': 3 / 4,
+  '16:9': 16 / 9,
+  '9:16': 9 / 16,
+};
+
+export type ProcessOptions = {
+  /** 0.1–1 scale of the (optionally ratio-cropped) image; not upscaled past 1 */
+  scale?: number;
+  ratio?: ResizeRatio;
+  format?: ImgFormat;
+  quality?: number;
+};
+
+/** center-crop rect of (iw,ih) matching target aspect ratio ar (w/h) */
+function cropForRatio(iw: number, ih: number, ar: number) {
+  const srcAr = iw / ih;
+  if (srcAr > ar) {
+    // too wide -> crop width
+    const w = ih * ar;
+    return { x: (iw - w) / 2, y: 0, w, h: ih };
+  }
+  const h = iw / ar;
+  return { x: 0, y: (ih - h) / 2, w: iw, h };
+}
+
+/**
+ * Resize (by % and/or aspect ratio) and re-encode an image in one Skia pass.
+ * Returns a new file:// uri. Ratio ≠ original center-crops to that aspect;
+ * scale then shrinks the result. Never upscales beyond the source.
+ */
+export async function processToFile(uri: string, opts: ProcessOptions = {}): Promise<string> {
+  const { scale = 1, ratio = 'original', format = 'jpg', quality = 92 } = opts;
+  const img = Skia.Image.MakeImageFromEncoded(await Skia.Data.fromURI(uri));
+  if (!img) throw new Error('decode_failed');
+  const iw = img.width();
+  const ih = img.height();
+
+  const crop = ratio === 'original' ? { x: 0, y: 0, w: iw, h: ih } : cropForRatio(iw, ih, RATIO_AR[ratio]);
+  const s = Math.max(0.05, Math.min(1, scale));
+  const outW = Math.max(1, Math.round(crop.w * s));
+  const outH = Math.max(1, Math.round(crop.h * s));
+
+  const surface = Skia.Surface.MakeOffscreen(outW, outH);
+  if (!surface) throw new Error('surface_failed');
+  const paint = Skia.Paint();
+  paint.setAntiAlias(true);
+  surface.getCanvas().drawImageRect(
+    img,
+    Skia.XYWHRect(crop.x, crop.y, crop.w, crop.h),
+    Skia.XYWHRect(0, 0, outW, outH),
+    paint,
+  );
+  surface.flush();
+
+  return encodeImageToFile(surface.makeImageSnapshot(), format, quality, 'resized');
+}

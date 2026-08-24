@@ -11,7 +11,9 @@ import {
   Minimize2,
   ChevronLeft,
   ChevronRight,
+  Pen,
 } from 'lucide-react-native';
+import { rasterizePdf } from '../services/pdf/raster';
 import { Screen } from '../components/Screen';
 import { Header } from '../components/Header';
 import { Text } from '../components/Text';
@@ -29,9 +31,10 @@ type Fit = typeof FIT_WIDTH | typeof FIT_PAGE;
 
 export function PdfPreviewScreen({ route, navigation }: RootScreenProps<'PdfPreview'>) {
   const theme = useTheme();
-  const { uri, name } = route.params;
+  const { uri, name, editable } = route.params;
   const pdfRef = useRef<React.ComponentRef<typeof Pdf>>(null);
   const [loading, setLoading] = useState(true);
+  const [rasterizing, setRasterizing] = useState(false);
   const [error, setError] = useState(false);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -39,13 +42,33 @@ export function PdfPreviewScreen({ route, navigation }: RootScreenProps<'PdfPrev
   const [fit, setFit] = useState<Fit>(FIT_WIDTH);
   const [immersive, setImmersive] = useState(false);
 
+  const openEditor = async () => {
+    setRasterizing(true);
+    try {
+      const pages = await rasterizePdf(uri);
+      setRasterizing(false);
+      if (pages.length) navigation.replace('PdfEditor', { pages, name });
+    } catch {
+      setRasterizing(false);
+    }
+  };
+
   const jump = (p: number) => {
-    const n = Math.min(Math.max(Math.round(p), 1), total || 1);
-    if (n !== page) {
+    if (!Number.isFinite(p) || total < 1) return;
+    const n = Math.min(Math.max(Math.round(p), 1), total);
+    if (n !== page && Number.isFinite(n)) {
       pdfRef.current?.setPage(n);
       setPage(n);
     }
   };
+
+  if (rasterizing) {
+    return (
+      <Screen center>
+        <LoadingState label="Preparing to edit…" />
+      </Screen>
+    );
+  }
 
   return (
     <Screen padded={false} edges={immersive ? [] : ['top', 'left', 'right', 'bottom']}>
@@ -57,11 +80,12 @@ export function PdfPreviewScreen({ route, navigation }: RootScreenProps<'PdfPrev
             title={name}
             onBack={() => navigation.goBack()}
             right={
-              <IconButton
-                icon={Share2}
-                onPress={() => sharePdf(uri, name)}
-                accessibilityLabel="Share PDF"
-              />
+              <View style={styles.headActions}>
+                {editable && (
+                  <IconButton icon={Pen} onPress={openEditor} accessibilityLabel="Edit PDF" color={theme.colors.brand} />
+                )}
+                <IconButton icon={Share2} onPress={() => sharePdf(uri, name)} accessibilityLabel="Share PDF" />
+              </View>
             }
           />
         </Animated.View>
@@ -207,6 +231,7 @@ function Toggle({
 
 const styles = StyleSheet.create({
   head: { paddingHorizontal: 20 },
+  headActions: { flexDirection: 'row' },
   body: { flex: 1 },
   pdf: { flex: 1, width: '100%' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
