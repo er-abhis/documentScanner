@@ -8,6 +8,7 @@ type Props = {
   accessibilityLabel: string;
   variant?: 'plain' | 'surface';
   color?: string;
+  disabled?: boolean;
 };
 
 export function IconButton({
@@ -16,14 +17,17 @@ export function IconButton({
   accessibilityLabel,
   variant = 'plain',
   color,
+  disabled = false,
 }: Props) {
   const theme = useTheme();
   return (
     <Pressable
       onPress={onPress}
+      disabled={disabled}
       hitSlop={HIT_SLOP}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled }}
       android_ripple={{ color: theme.colors.border, borderless: variant === 'plain' }}
       style={({ pressed }) => [
         styles.base,
@@ -32,6 +36,7 @@ export function IconButton({
           borderRadius: theme.radius.pill,
         },
         pressed && { opacity: 0.6 },
+        disabled && { opacity: 0.3 },
       ]}
     >
       <Icon size={theme.iconSize.md} color={color ?? theme.colors.text} />

@@ -16,12 +16,14 @@ type Props = {
   min?: number;
   max?: number;
   onChange: (v: number) => void;
+  /** custom value formatter (default: signed 1-decimal) */
+  format?: (v: number) => string;
 };
 
 const THUMB = 24;
 
 /** Minimal UI-thread slider built on gesture-handler (no native slider dep). */
-export function Slider({ label, value, min = -1, max = 1, onChange }: Props) {
+export function Slider({ label, value, min = -1, max = 1, onChange, format }: Props) {
   const theme = useTheme();
   const [width, setWidth] = useState(0);
   const x = useSharedValue(0);
@@ -60,7 +62,7 @@ export function Slider({ label, value, min = -1, max = 1, onChange }: Props) {
           {label}
         </Text>
         <Text variant="callout" color="textSecondary">
-          {value > 0 ? `+${value.toFixed(1)}` : value.toFixed(1)}
+          {format ? format(value) : value > 0 ? `+${value.toFixed(1)}` : value.toFixed(1)}
         </Text>
       </View>
       <GestureDetector gesture={pan}>
