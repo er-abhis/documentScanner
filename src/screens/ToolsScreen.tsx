@@ -15,6 +15,7 @@ import { Screen } from '../components/Screen';
 import { Text } from '../components/Text';
 import { useImportImages } from '../hooks/useImportImages';
 import { pickImages } from '../services/gallery';
+import { useT } from '../i18n';
 import { useTheme } from '../theme';
 import type { RootStackParamList } from '../types/navigation';
 
@@ -28,6 +29,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 export function ToolsScreen() {
   const navigation = useNavigation<Nav>();
   const importImages = useImportImages();
+  const t = useT();
 
   const ocrImage = async () => {
     const [uri] = await pickImages(1);
@@ -36,19 +38,19 @@ export function ToolsScreen() {
 
   const groups: { title: string; tools: Tool[] }[] = [
     {
-      title: 'Create',
+      title: t('tools.create'),
       tools: [
-        { icon: ScanLine, label: 'Scan Document', hint: 'Camera + auto edge detection', onPress: () => navigation.navigate('Scanner') },
-        { icon: Grid2x2, label: 'Collage Studio', hint: 'Templates, frames, export', onPress: () => navigation.navigate('CollageStudio') },
-        { icon: ImagePlus, label: 'Image → PDF', hint: 'Pick photos, reorder, export', onPress: importImages },
-        { icon: RefreshCw, label: 'Convert Image', hint: 'JPG · PNG · WEBP', onPress: () => navigation.navigate('Convert') },
-        { icon: ScanText, label: 'Scan to Text', hint: 'On-device OCR from a photo', onPress: ocrImage },
+        { icon: ScanLine, label: t('tools.scanDoc'), hint: t('tools.scanDocSub'), onPress: () => navigation.navigate('Scanner') },
+        { icon: Grid2x2, label: t('home.collage'), hint: t('tools.collageSub'), onPress: () => navigation.navigate('CollageStudio') },
+        { icon: ImagePlus, label: t('home.imgToPdf'), hint: t('tools.imgPdfSub'), onPress: importImages },
+        { icon: RefreshCw, label: t('home.convert'), hint: t('home.convertSub'), onPress: () => navigation.navigate('Convert') },
+        { icon: ScanText, label: t('tools.scanText'), hint: t('tools.scanTextSub'), onPress: ocrImage },
       ],
     },
     {
-      title: 'Library',
+      title: t('tools.library'),
       tools: [
-        { icon: FolderOpen, label: 'My Documents', hint: 'Open, organize, share', onPress: () => navigation.navigate('Documents') },
+        { icon: FolderOpen, label: t('tools.myDocs'), hint: t('tools.myDocsSub'), onPress: () => navigation.navigate('Documents') },
       ],
     },
   ];
@@ -56,16 +58,16 @@ export function ToolsScreen() {
   return (
     <Screen scroll>
       <Text variant="display" style={styles.title}>
-        Tools
+        {t('tools.title')}
       </Text>
       {groups.map((g, gi) => (
         <View key={g.title} style={styles.group}>
           <Text variant="title" style={styles.groupTitle}>
             {g.title}
           </Text>
-          {g.tools.map((t, i) => (
-            <Animated.View key={t.label} entering={FadeInDown.delay((gi * 3 + i) * 50).springify().damping(18)}>
-              <ToolRow {...t} />
+          {g.tools.map((tool, i) => (
+            <Animated.View key={tool.label} entering={FadeInDown.delay((gi * 3 + i) * 50).springify().damping(18)}>
+              <ToolRow {...tool} />
             </Animated.View>
           ))}
         </View>

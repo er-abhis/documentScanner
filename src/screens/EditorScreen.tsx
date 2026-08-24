@@ -113,7 +113,7 @@ export function EditorScreen({ route, navigation }: RootScreenProps<'Editor'>) {
   };
 
   const confirm = async () => {
-    if (!frame || !rot) return;
+    if (!frame || !rot || frame.w === 0 || frame.h === 0) return;
     const sx = rot.w / frame.w;
     const sy = rot.h / frame.h;
     const toSrc = (p: XY): XY => ({

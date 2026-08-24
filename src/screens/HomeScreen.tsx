@@ -60,13 +60,13 @@ export function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
         >
           {upd.downloaded ? <RotateCw size={18} color={theme.colors.brand} /> : <Download size={18} color={theme.colors.brand} />}
           <Text variant="callout" color="brand" style={styles.updateText}>
-            {upd.downloaded ? 'Update ready — tap to restart & install' : upd.downloading ? 'Downloading update…' : 'A new version is available — tap to update'}
+            {upd.downloaded ? t('home.updateReady') : upd.downloading ? t('home.updating') : t('home.updateAvailable')}
           </Text>
         </Pressable>
       )}
       <View style={styles.heading}>
         <Text variant="display" style={styles.title}>
-          Scan, edit,{'\n'}share instantly.
+          {t('home.title')}
         </Text>
       </View>
 
@@ -81,14 +81,14 @@ export function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
             <ScanLine size={26} color={theme.colors.onBrand} />
           </View>
           <Text variant="h2" style={{ color: theme.colors.onBrand }}>
-            Scan a document
+            {t('home.scanTitle')}
           </Text>
           <Text variant="callout" style={[styles.heroSub, { color: theme.colors.onBrand }]}>
-            Auto edge-detection, crop and enhance — right on your device.
+            {t('home.scanSub')}
           </Text>
           <View style={styles.heroBtn}>
             <Button
-              title="Scan Document"
+              title={t('home.scanCta')}
               icon={ScanLine}
               variant="secondary"
               fullWidth={false}
@@ -99,21 +99,21 @@ export function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
       </Animated.View>
 
       <Text variant="title" style={styles.sectionTitle}>
-        Quick tools
+        {t('home.quickTools')}
       </Text>
-      <QuickRow icon={FilePen} label="PDF Editor" hint="Open a PDF to view, annotate, save copy" onPress={() => setPdfSheet(true)} />
-      <QuickRow icon={Grid2x2} label="Collage Studio" hint="Beautiful photo layouts" onPress={() => navigation.navigate('CollageStudio')} />
-      <QuickRow icon={ImagePlus} label="Image → PDF" hint="Photos to a shareable PDF" onPress={importImages} />
-      <QuickRow icon={RefreshCw} label="Convert Image" hint="JPG · PNG · WEBP" onPress={() => navigation.navigate('Convert')} />
-      <QuickRow icon={LayoutGrid} label="All Tools" hint="Every tool in one place" onPress={() => navigation.navigate('Tools')} />
+      <QuickRow icon={FilePen} label={t('home.pdfEditor')} hint={t('home.pdfEditorSub')} onPress={() => setPdfSheet(true)} />
+      <QuickRow icon={Grid2x2} label={t('home.collage')} hint={t('home.collageSub')} onPress={() => navigation.navigate('CollageStudio')} />
+      <QuickRow icon={ImagePlus} label={t('home.imgToPdf')} hint={t('home.imgToPdfSub')} onPress={importImages} />
+      <QuickRow icon={RefreshCw} label={t('home.convert')} hint={t('home.convertSub')} onPress={() => navigation.navigate('Convert')} />
+      <QuickRow icon={LayoutGrid} label={t('home.allTools')} hint={t('home.allToolsSub')} onPress={() => navigation.navigate('Tools')} />
 
       {recent.length > 0 && (
         <>
           <View style={styles.recentHead}>
-            <Text variant="title">Recent</Text>
+            <Text variant="title">{t('home.recent')}</Text>
             <Pressable onPress={() => navigation.navigate('Documents')} accessibilityRole="button">
               <Text variant="callout" color="brand">
-                See all
+                {t('home.seeAll')}
               </Text>
             </Pressable>
           </View>
@@ -130,24 +130,24 @@ export function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
 
       <ActionSheet
         visible={pdfSheet}
-        title="PDF Editor"
+        title={t('home.pdfEditor')}
         onClose={() => setPdfSheet(false)}
         actions={[
-          { label: 'Open a PDF file', icon: FolderOpen, onPress: openExternalPdf },
-          { label: 'From My Documents', icon: FileText, onPress: () => navigation.navigate('Documents') },
+          { label: t('menu.openPdf'), icon: FolderOpen, onPress: openExternalPdf },
+          { label: t('menu.fromDocs'), icon: FileText, onPress: () => navigation.navigate('Documents') },
         ]}
       />
 
       <ActionSheet
         visible={brandMenu}
-        title="Document Suite"
+        title={t('home.brand')}
         onClose={() => setBrandMenu(false)}
         actions={[
-          { label: 'App Guide', icon: BookOpen, onPress: () => navigation.navigate('AppGuide') },
-          { label: 'Features & FAQ', icon: Sparkles, onPress: () => navigation.navigate('Faq') },
-          { label: 'About the developer', icon: User, onPress: () => navigation.navigate('About') },
-          { label: 'Buy us a coffee', icon: Coffee, onPress: () => navigation.navigate('Coffee') },
-          { label: 'Privacy policy', icon: ShieldCheck, onPress: () => navigation.navigate('Privacy') },
+          { label: t('settings.appGuide'), icon: BookOpen, onPress: () => navigation.navigate('AppGuide') },
+          { label: t('settings.featuresFaq'), icon: Sparkles, onPress: () => navigation.navigate('Faq') },
+          { label: t('settings.about'), icon: User, onPress: () => navigation.navigate('About') },
+          { label: t('settings.support'), icon: Coffee, onPress: () => navigation.navigate('Coffee') },
+          { label: t('settings.privacy'), icon: ShieldCheck, onPress: () => navigation.navigate('Privacy') },
         ]}
       />
     </Screen>

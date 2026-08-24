@@ -53,6 +53,9 @@ export function RootNavigator() {
           headerShown: false,
           contentStyle: { backgroundColor: theme.colors.background },
           animation: 'slide_from_right',
+          animationDuration: 260,
+          // freeze off-screen screens so transitions stay smooth and cheap
+          freezeOnBlur: true,
         }}
       >
         <Stack.Screen name="Tabs" component={TabNavigator} />

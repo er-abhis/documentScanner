@@ -10,12 +10,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [preference, setPrefState] = useState<ThemePref>('system');
 
   useEffect(() => {
-    getPrefs().then(p => setPrefState(p.themeMode));
+    getPrefs().then(p => setPrefState(p.themeMode)).catch(() => {});
   }, []);
 
   const setPreference = (p: ThemePref) => {
     setPrefState(p);
-    setPref('themeMode', p);
+    setPref('themeMode', p).catch(() => {});
   };
 
   return <ThemePrefContext.Provider value={{ preference, setPreference }}>{children}</ThemePrefContext.Provider>;

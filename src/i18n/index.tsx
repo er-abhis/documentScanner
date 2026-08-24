@@ -19,12 +19,12 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<LangPref>('en');
 
   useEffect(() => {
-    getPrefs().then(p => setLangState(p.language));
+    getPrefs().then(p => setLangState(p.language)).catch(() => {});
   }, []);
 
   const setLang = useCallback((l: LangPref) => {
     setLangState(l);
-    setPref('language', l);
+    setPref('language', l).catch(() => {});
   }, []);
 
   const t = useCallback(

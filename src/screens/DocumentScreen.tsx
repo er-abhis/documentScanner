@@ -18,10 +18,12 @@ import {
   type DocumentMeta,
 } from '../services/storage';
 import { spacing, useTheme } from '../theme';
+import { useI18n } from '../i18n';
 import type { RootScreenProps } from '../types/navigation';
 
 export function DocumentScreen({ route, navigation }: RootScreenProps<'Document'>) {
   const theme = useTheme();
+  const { t, lang } = useI18n();
   const { id } = route.params;
   const [doc, setDoc] = useState<DocumentMeta | null>(null);
   const [loading, setLoading] = useState(true);
@@ -40,7 +42,7 @@ export function DocumentScreen({ route, navigation }: RootScreenProps<'Document'
       navigation.navigate('PdfPreview', { uri, name: doc.name });
     } catch {
       setMakingPdf(false);
-      Alert.alert('Couldn’t create PDF', 'Please try again.');
+      Alert.alert(t('doc.createFail'), t('docs.shareFailSub'));
     }
   };
 
@@ -56,7 +58,7 @@ export function DocumentScreen({ route, navigation }: RootScreenProps<'Document'
       await sharePdf(uri, doc.name);
     } catch {
       setMakingPdf(false);
-      Alert.alert('Couldn’t share', 'Please try again.');
+      Alert.alert(t('docs.shareFail'), t('docs.shareFailSub'));
     }
   };
 
@@ -80,7 +82,7 @@ export function DocumentScreen({ route, navigation }: RootScreenProps<'Document'
   if (makingPdf) {
     return (
       <Screen center>
-        <LoadingState label="Creating PDF…" />
+        <LoadingState label={t('doc.creating')} />
       </Screen>
     );
   }
@@ -88,10 +90,10 @@ export function DocumentScreen({ route, navigation }: RootScreenProps<'Document'
   if (!doc) {
     return (
       <Screen>
-        <Header title="Document" onBack={() => navigation.goBack()} />
+        <Header title={t('doc.title')} onBack={() => navigation.goBack()} />
         <View style={styles.center}>
           <Text variant="body" color="textSecondary">
-            This document is no longer available.
+            {t('doc.notAvailable')}
           </Text>
         </View>
       </Screen>
@@ -111,19 +113,19 @@ export function DocumentScreen({ route, navigation }: RootScreenProps<'Document'
               <IconButton
                 icon={Pen}
                 onPress={() => navigation.navigate('PdfEditor', { id })}
-                accessibilityLabel="Edit PDF"
+                accessibilityLabel={t('doc.editPdf')}
               />
               <IconButton
                 icon={LayoutGrid}
                 onPress={() => navigation.navigate('Organize', { id })}
-                accessibilityLabel="Organize pages"
+                accessibilityLabel={t('doc.organize')}
               />
-              <IconButton icon={Share2} onPress={shareDoc} accessibilityLabel="Share document" />
+              <IconButton icon={Share2} onPress={shareDoc} accessibilityLabel={t('doc.shareDoc')} />
             </View>
           }
         />
         <Text variant="caption" color="textSecondary" style={styles.sub}>
-          {uris.length} page{uris.length === 1 ? '' : 's'}
+          {lang === 'hi' ? `${uris.length} पेज` : `${uris.length} page${uris.length === 1 ? '' : 's'}`}
         </Text>
       </View>
       <FlatList
@@ -154,7 +156,7 @@ export function DocumentScreen({ route, navigation }: RootScreenProps<'Document'
                 resizeMethod="resize"
               />
               <Text variant="label" color="textTertiary" style={styles.pageLabel}>
-                PAGE {index + 1}
+                {t('doc.page')} {index + 1}
               </Text>
             </Pressable>
           </Animated.View>
@@ -162,7 +164,7 @@ export function DocumentScreen({ route, navigation }: RootScreenProps<'Document'
       />
       <View style={[styles.footer, { borderTopColor: theme.colors.border }]}>
         <Button
-          title={doc.pdfFile ? 'View PDF' : 'Create PDF'}
+          title={doc.pdfFile ? t('doc.viewPdf') : t('doc.createPdf')}
           icon={FileText}
           onPress={openPdf}
         />

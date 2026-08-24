@@ -65,7 +65,7 @@ export function PdfEditorScreen({ route, navigation }: RootScreenProps<'PdfEdito
         setDoc(m);
         setUris(m ? pageUris(m) : []);
         setLoading(false);
-      });
+      }).catch(() => live && setLoading(false));
       return () => { live = false; };
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [byId, byId ? params.id : null]),

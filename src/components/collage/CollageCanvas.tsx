@@ -27,7 +27,7 @@ export function CollageCanvas({ template, project, images, font, selectedId, onS
   const [box, setBox] = useState({ w: 0, h: 0 });
   const start = useRef<FrameFill | null>(null);
 
-  const ratio = RATIO_VALUE[project.ratio];
+  const ratio = RATIO_VALUE[project.ratio] ?? 1;
   const disp = useMemo(() => {
     if (box.w === 0) return { W: 0, H: 0 };
     let W = box.w;

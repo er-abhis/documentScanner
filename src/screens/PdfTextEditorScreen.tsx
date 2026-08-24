@@ -55,8 +55,9 @@ export function PdfTextEditorScreen({ route, navigation }: RootScreenProps<'PdfT
       setLoading(false);
       setScanned(!m.hasText);
     } else if (m.type === 'select') {
+      if (!m.meta || typeof m.meta !== 'object') return;
       setSel({ meta: m.meta, id: m.id });
-      setDraft(m.meta.str);
+      setDraft(typeof m.meta.str === 'string' ? m.meta.str : '');
       setColor('#111111');
     } else if (m.type === 'error') {
       setLoading(false);

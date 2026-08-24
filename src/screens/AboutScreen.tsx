@@ -8,22 +8,24 @@ import { Header } from '../components/Header';
 import { Text } from '../components/Text';
 import { Button } from '../components/Button';
 import { useTheme } from '../theme';
+import { useI18n } from '../i18n';
 import { haptics } from '../lib/haptics';
 import type { RootScreenProps } from '../types/navigation';
 
 const LINKEDIN = 'https://www.linkedin.com/in/er-abhishek-choudhary/';
 
-const HIGHLIGHTS: { icon: LucideIcon; text: string }[] = [
-  { icon: Rocket, text: '8+ years building production mobile & web applications.' },
-  { icon: Smartphone, text: 'React Native, Android & iOS — with a focus on New Architecture.' },
-  { icon: ShieldCheck, text: 'Offline-first, privacy-focused products that work without the cloud.' },
-  { icon: Sparkles, text: 'Full-stack: TypeScript, Node.js, native modules and polished UX.' },
+const HIGHLIGHTS: { icon: LucideIcon; en: string; hi: string }[] = [
+  { icon: Rocket, en: '8+ years building production mobile & web applications.', hi: '8+ वर्षों का प्रोडक्शन मोबाइल और वेब ऐप्लिकेशन बनाने का अनुभव।' },
+  { icon: Smartphone, en: 'React Native, Android & iOS — with a focus on New Architecture.', hi: 'React Native, Android और iOS — New Architecture पर विशेष ध्यान।' },
+  { icon: ShieldCheck, en: 'Offline-first, privacy-focused products that work without the cloud.', hi: 'ऑफ़लाइन-फर्स्ट, गोपनीयता-केंद्रित प्रोडक्ट जो बिना क्लाउड के काम करते हैं।' },
+  { icon: Sparkles, en: 'Full-stack: TypeScript, Node.js, native modules and polished UX.', hi: 'फुल-स्टैक: TypeScript, Node.js, नेटिव मॉड्यूल और बेहतरीन UX।' },
 ];
 
 const SKILLS = ['React Native', 'TypeScript', 'Android', 'iOS', 'Node.js', 'Skia', 'PDF', 'UI/UX'];
 
 export function AboutScreen({ navigation }: RootScreenProps<'About'>) {
   const theme = useTheme();
+  const { t, lang } = useI18n();
   const openLinkedIn = () => {
     haptics.light();
     Linking.openURL(LINKEDIN).catch(() => Alert.alert('Couldn’t open link', LINKEDIN));
@@ -32,7 +34,7 @@ export function AboutScreen({ navigation }: RootScreenProps<'About'>) {
   return (
     <Screen scroll padded={false}>
       <View style={styles.pad}>
-        <Header title="About the developer" onBack={() => navigation.goBack()} />
+        <Header title={t('about.title')} onBack={() => navigation.goBack()} />
       </View>
 
       <Animated.View entering={FadeInDown.springify().damping(18)} style={styles.pad}>
@@ -47,7 +49,7 @@ export function AboutScreen({ navigation }: RootScreenProps<'About'>) {
             <Text variant="display" style={{ color: theme.colors.onBrand }}>AC</Text>
           </View>
           <Text variant="h2" style={{ color: theme.colors.onBrand }}>Abhishek Choudhary</Text>
-          <Text variant="callout" style={[styles.role, { color: theme.colors.onBrand }]}>Senior Software Developer · 8+ years</Text>
+          <Text variant="callout" style={[styles.role, { color: theme.colors.onBrand }]}>{t('about.role')}</Text>
         </LinearGradient>
       </Animated.View>
 
@@ -61,20 +63,20 @@ export function AboutScreen({ navigation }: RootScreenProps<'About'>) {
 
       <View style={[styles.pad, styles.list]}>
         {HIGHLIGHTS.map((h, i) => (
-          <Animated.View key={h.text} entering={FadeInDown.delay(60 + i * 60).springify().damping(18)}>
+          <Animated.View key={h.en} entering={FadeInDown.delay(60 + i * 60).springify().damping(18)}>
             <View style={[styles.row, { backgroundColor: theme.colors.surface, borderRadius: theme.radius.lg, borderColor: theme.colors.border, borderWidth: theme.mode === 'dark' ? StyleSheet.hairlineWidth : 0 }, theme.elevation(1)]}>
               <View style={[styles.rowIcon, { backgroundColor: theme.colors.brandSubtle, borderRadius: theme.radius.md }]}>
                 <h.icon size={18} color={theme.colors.brand} />
               </View>
-              <Text variant="callout" style={styles.flex}>{h.text}</Text>
+              <Text variant="callout" style={styles.flex}>{h[lang]}</Text>
             </View>
           </Animated.View>
         ))}
       </View>
 
       <View style={[styles.pad, styles.actions]}>
-        <Button title="Connect on LinkedIn" icon={ExternalLink} onPress={openLinkedIn} />
-        <Button title="Buy me a coffee" icon={Coffee} variant="secondary" style={styles.gap} onPress={() => navigation.navigate('Coffee')} />
+        <Button title={t('about.linkedin')} icon={ExternalLink} onPress={openLinkedIn} />
+        <Button title={t('about.coffee')} icon={Coffee} variant="secondary" style={styles.gap} onPress={() => navigation.navigate('Coffee')} />
       </View>
     </Screen>
   );

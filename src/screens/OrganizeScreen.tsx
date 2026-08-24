@@ -49,7 +49,7 @@ export function OrganizeScreen({ route, navigation }: RootScreenProps<'Organize'
           );
         }
         setLoading(false);
-      });
+      }).catch(() => live && setLoading(false));
       return () => {
         live = false;
       };

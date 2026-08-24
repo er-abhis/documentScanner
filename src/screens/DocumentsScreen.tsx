@@ -22,9 +22,11 @@ import {
 } from '../services/storage';
 import { sharePdf } from '../services/sharing';
 import { spacing } from '../theme';
+import { useI18n } from '../i18n';
 import type { RootScreenProps } from '../types/navigation';
 
 export function DocumentsScreen({ navigation }: RootScreenProps<'Documents'>) {
+  const { t, lang } = useI18n();
   const [docs, setDocs] = useState<DocumentMeta[]>([]);
   const [query, setQuery] = useState('');
   const [sheetFor, setSheetFor] = useState<DocumentMeta | null>(null);
@@ -52,12 +54,12 @@ export function DocumentsScreen({ navigation }: RootScreenProps<'Documents'>) {
   const moreDoc = useCallback((d: DocumentMeta) => setSheetFor(d), []);
 
   const confirmDelete = (doc: DocumentMeta) => {
-    Alert.alert('Delete document?', `“${doc.name}” will be permanently deleted.`, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('docs.deleteTitle'), `“${doc.name}” ${t('docs.deleteWarn')}`, [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('common.delete'),
         style: 'destructive',
-        onPress: () => deleteDocument(doc.id).then(reload),
+        onPress: () => deleteDocument(doc.id).then(reload).catch(reload),
       },
     ]);
   };
@@ -68,43 +70,47 @@ export function DocumentsScreen({ navigation }: RootScreenProps<'Documents'>) {
       await sharePdf(uri, doc.name);
       reload();
     } catch {
-      Alert.alert('Couldn’t share', 'Please try again.');
+      Alert.alert(t('docs.shareFail'), t('docs.shareFailSub'));
     }
   };
 
   const actions: SheetAction[] = sheetFor
     ? [
-        { label: 'Share PDF', icon: Share2, onPress: () => shareDoc(sheetFor) },
-        { label: 'Rename', icon: Pencil, onPress: () => setRenameFor(sheetFor) },
+        { label: t('docs.sharePdf'), icon: Share2, onPress: () => shareDoc(sheetFor) },
+        { label: t('docs.rename'), icon: Pencil, onPress: () => setRenameFor(sheetFor) },
         {
-          label: 'Duplicate',
+          label: t('docs.duplicate'),
           icon: Copy,
-          onPress: () => duplicateDocument(sheetFor.id).then(reload),
+          onPress: () => duplicateDocument(sheetFor.id).then(reload).catch(reload),
         },
-        { label: 'Delete', icon: Trash2, destructive: true, onPress: () => confirmDelete(sheetFor) },
+        { label: t('common.delete'), icon: Trash2, destructive: true, onPress: () => confirmDelete(sheetFor) },
       ]
     : [];
 
   return (
     <Screen padded={false}>
       <View style={styles.head}>
-        <Header title="My Documents" />
+        <Header title={t('docs.title')} />
         {docs.length > 0 ? (
-          <SearchBar value={query} onChangeText={setQuery} placeholder="Search documents" />
+          <SearchBar value={query} onChangeText={setQuery} placeholder={t('docs.search')} />
         ) : null}
       </View>
 
       {docs.length === 0 ? (
         <EmptyState
           icon={FileText}
-          title="No documents yet"
-          subtitle="Scan your first document to create a PDF you can share."
-          actionLabel="Scan Document"
+          title={t('docs.emptyTitle')}
+          subtitle={t('docs.emptySub')}
+          actionLabel={t('docs.scan')}
           actionIcon={ScanLine}
           onAction={() => navigation.navigate('Scanner')}
         />
       ) : filtered.length === 0 ? (
-        <EmptyState icon={SearchX} title="No matches" subtitle={`Nothing found for “${query}”.`} />
+        <EmptyState
+          icon={SearchX}
+          title={t('docs.noMatch')}
+          subtitle={lang === 'hi' ? `“${query}” के लिए कुछ नहीं मिला।` : `Nothing found for “${query}”.`}
+        />
       ) : (
         <FlatList
           data={filtered}
@@ -130,7 +136,7 @@ export function DocumentsScreen({ navigation }: RootScreenProps<'Documents'>) {
         initial={renameFor?.name ?? ''}
         onCancel={() => setRenameFor(null)}
         onSubmit={name => {
-          if (renameFor) renameDocument(renameFor.id, name).then(reload);
+          if (renameFor) renameDocument(renameFor.id, name).then(reload).catch(reload);
           setRenameFor(null);
         }}
       />

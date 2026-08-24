@@ -37,7 +37,8 @@ const escLit = (s: string) => s.replace(/([\\()])/g, '\\$1');
 
 function hexToRgb(hexColor: string) {
   const h = hexColor.replace('#', '');
-  const n = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
+  const parsed = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
+  const n = Number.isNaN(parsed) ? 0x111111 : parsed; // default near-black on bad input
   return rgb(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255);
 }
 

@@ -5,6 +5,7 @@ import { DocumentsScreen } from '../screens/DocumentsScreen';
 import { ToolsScreen } from '../screens/ToolsScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { useTheme } from '../theme';
+import { useT } from '../i18n';
 import type { TabParamList } from '../types/navigation';
 
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -16,6 +17,7 @@ function ScanPlaceholder() {
 
 export function TabNavigator() {
   const theme = useTheme();
+  const t = useT();
 
   return (
     <Tab.Navigator
@@ -34,18 +36,18 @@ export function TabNavigator() {
       <Tab.Screen
         name="Home"
         component={HomeScreen}
-        options={{ tabBarIcon: ({ color, size }) => <House color={color} size={size} /> }}
+        options={{ tabBarLabel: t('tab.home'), tabBarIcon: ({ color, size }) => <House color={color} size={size} /> }}
       />
       <Tab.Screen
         name="Documents"
         component={DocumentsScreen}
-        options={{ tabBarIcon: ({ color, size }) => <FileText color={color} size={size} /> }}
+        options={{ tabBarLabel: t('tab.documents'), tabBarIcon: ({ color, size }) => <FileText color={color} size={size} /> }}
       />
       <Tab.Screen
         name="Scan"
         component={ScanPlaceholder}
         options={{
-          tabBarLabel: 'Scan',
+          tabBarLabel: t('tab.scan'),
           tabBarIcon: ({ color, size }) => <ScanLine color={color} size={size + 2} />,
         }}
         listeners={({ navigation }) => ({
@@ -58,12 +60,12 @@ export function TabNavigator() {
       <Tab.Screen
         name="Tools"
         component={ToolsScreen}
-        options={{ tabBarIcon: ({ color, size }) => <LayoutGrid color={color} size={size} /> }}
+        options={{ tabBarLabel: t('tab.tools'), tabBarIcon: ({ color, size }) => <LayoutGrid color={color} size={size} /> }}
       />
       <Tab.Screen
         name="Settings"
         component={SettingsScreen}
-        options={{ tabBarIcon: ({ color, size }) => <SettingsIcon color={color} size={size} /> }}
+        options={{ tabBarLabel: t('tab.settings'), tabBarIcon: ({ color, size }) => <SettingsIcon color={color} size={size} /> }}
       />
     </Tab.Navigator>
   );

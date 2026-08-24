@@ -84,11 +84,11 @@ export function SettingsScreen({ navigation }: RootScreenProps<'Settings'>) {
       </Card>
 
       <Card style={styles.group}>
-        <Row icon={BookOpen} label="App Guide" onPress={() => navigation.navigate('AppGuide')} />
-        <Row icon={Sparkles} label="Features & FAQ" onPress={() => navigation.navigate('Faq')} />
+        <Row icon={BookOpen} label={t('settings.appGuide')} onPress={() => navigation.navigate('AppGuide')} />
+        <Row icon={Sparkles} label={t('settings.featuresFaq')} onPress={() => navigation.navigate('Faq')} />
         <Row icon={Coffee} label={t('settings.support')} onPress={() => navigation.navigate('Coffee')} />
-        <Row icon={User} label="About the developer" onPress={() => navigation.navigate('About')} />
-        <Row icon={ShieldCheck} label="Privacy policy" onPress={() => navigation.navigate('Privacy')} last />
+        <Row icon={User} label={t('settings.about')} onPress={() => navigation.navigate('About')} />
+        <Row icon={ShieldCheck} label={t('settings.privacy')} onPress={() => navigation.navigate('Privacy')} last />
       </Card>
 
       <Card style={styles.group}>

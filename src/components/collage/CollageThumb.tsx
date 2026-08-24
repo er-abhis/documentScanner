@@ -5,7 +5,7 @@ import { RATIO_VALUE, DEFAULT_STYLE, type Template } from '../../services/collag
 
 /** Static, non-interactive preview of a template with empty frames. */
 export function CollageThumb({ template, width }: { template: Template; width: number }) {
-  const ratio = RATIO_VALUE[template.ratio];
+  const ratio = RATIO_VALUE[template.ratio] ?? 1;
   const W = width;
   const H = width / ratio;
 
