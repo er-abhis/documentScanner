@@ -3,9 +3,9 @@ import { Image, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import LinearGradient from 'react-native-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
-import { ScanLine, ImagePlus, LayoutGrid, ChevronRight, Grid2x2, FilePen, RefreshCw } from 'lucide-react-native';
+import { ScanLine, ImagePlus, LayoutGrid, ChevronRight, Grid2x2, FilePen, RefreshCw, ChevronDown } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
-import { FolderOpen, FileText, Download, RotateCw } from 'lucide-react-native';
+import { FolderOpen, FileText, Download, RotateCw, User, ShieldCheck, Coffee } from 'lucide-react-native';
 import { Screen } from '../components/Screen';
 import { Text } from '../components/Text';
 import { Button } from '../components/Button';
@@ -16,13 +16,17 @@ import { useAppUpdate } from '../hooks/useAppUpdate';
 import { pickPdf } from '../services/pdf/pickPdf';
 import { listDocuments, type DocumentMeta } from '../services/storage';
 import { useTheme } from '../theme';
+import { useT } from '../i18n';
+import { haptics } from '../lib/haptics';
 import type { RootScreenProps } from '../types/navigation';
 
 export function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
   const theme = useTheme();
+  const t = useT();
   const importImages = useImportImages();
   const [recent, setRecent] = useState<DocumentMeta[]>([]);
   const [pdfSheet, setPdfSheet] = useState(false);
+  const [brandMenu, setBrandMenu] = useState(false);
   const upd = useAppUpdate();
 
   const openExternalPdf = async () => {
@@ -38,10 +42,16 @@ export function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
 
   return (
     <Screen scroll>
-      <View style={styles.brand}>
+      <Pressable
+        onPress={() => { haptics.light(); setBrandMenu(true); }}
+        accessibilityRole="button"
+        accessibilityLabel="About & more"
+        style={({ pressed }) => [styles.brand, pressed && { opacity: 0.6 }]}
+      >
         <Image source={require('../assets/logo.png')} style={styles.brandLogo} resizeMode="contain" />
-        <Text variant="bodyStrong">Document Suite</Text>
-      </View>
+        <Text variant="bodyStrong">{t('home.brand')}</Text>
+        <ChevronDown size={16} color={theme.colors.textTertiary} />
+      </Pressable>
 
       {upd.available && (
         <Pressable
@@ -125,6 +135,17 @@ export function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
         actions={[
           { label: 'Open a PDF file', icon: FolderOpen, onPress: openExternalPdf },
           { label: 'From My Documents', icon: FileText, onPress: () => navigation.navigate('Documents') },
+        ]}
+      />
+
+      <ActionSheet
+        visible={brandMenu}
+        title="Document Suite"
+        onClose={() => setBrandMenu(false)}
+        actions={[
+          { label: 'About the developer', icon: User, onPress: () => navigation.navigate('About') },
+          { label: 'Buy us a coffee', icon: Coffee, onPress: () => navigation.navigate('Coffee') },
+          { label: 'Privacy policy', icon: ShieldCheck, onPress: () => navigation.navigate('Privacy') },
         ]}
       />
     </Screen>

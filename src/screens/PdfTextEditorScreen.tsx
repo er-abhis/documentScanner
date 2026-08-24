@@ -68,7 +68,7 @@ export function PdfTextEditorScreen({ route, navigation }: RootScreenProps<'PdfT
     if (!sel) return;
     const { meta, id } = sel;
     const edit: PdfTextEdit & { id: string } = {
-      id, page: meta.page, x: meta.x, yTop: meta.yTop, w: meta.w,
+      id, page: meta.page, orig: meta.str, x: meta.x, yTop: meta.yTop, w: meta.w,
       fontSize: meta.fontSize, fontName: meta.fontName, newText, color,
     };
     setEdits(prev => [...prev.filter(x => x.id !== id), edit]);
@@ -176,7 +176,7 @@ export function PdfTextEditorScreen({ route, navigation }: RootScreenProps<'PdfT
               ))}
             </View>
             <Text variant="caption" color="textTertiary" style={styles.note}>
-              Free engine can’t rewrite the original text stream — the replacement is overlaid at the detected position/size in the closest standard font.
+              Replaces the original text in place when the PDF allows it; otherwise overlays a close match at the same position.
             </Text>
             <View style={styles.actions}>
               <Button title="Delete" variant="danger" fullWidth={false} style={styles.flex1} onPress={() => recordEdit(null)} />

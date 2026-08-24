@@ -32,6 +32,9 @@ export type RootStackParamList = {
   PdfPreview: { uri: string; name: string; editable?: boolean };
   Editor: { uri: string; onDone: (uri: string) => void };
   Annotate: { uri: string; onDone: (uri: string) => void };
+  Coffee: undefined;
+  About: undefined;
+  Privacy: undefined;
   // modal
   PagePreview: { uri: string; index: number; total: number };
 };

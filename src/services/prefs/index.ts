@@ -1,11 +1,16 @@
 import RNFS from 'react-native-fs';
 
 /** Small JSON-backed app preferences store (RNFS, no extra dependency). */
+export type ThemePref = 'system' | 'light' | 'dark';
+export type LangPref = 'en' | 'hi';
+
 export type Prefs = {
   autoUpdate: boolean;
+  themeMode: ThemePref;
+  language: LangPref;
 };
 
-const DEFAULTS: Prefs = { autoUpdate: true };
+const DEFAULTS: Prefs = { autoUpdate: true, themeMode: 'system', language: 'en' };
 const FILE = `${RNFS.DocumentDirectoryPath}/prefs.json`;
 
 export async function getPrefs(): Promise<Prefs> {

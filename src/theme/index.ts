@@ -4,6 +4,7 @@ import { elevation, type ElevationLevel } from './shadows';
 import { spacing, radius, iconSize, HIT_SLOP, MIN_TOUCH } from './spacing';
 import { typography, type TypeVariant } from './typography';
 import { motion } from './motion';
+import { useThemePref } from './ThemeProvider';
 
 export type Theme = {
   mode: 'light' | 'dark';
@@ -18,7 +19,8 @@ export type Theme = {
 
 export function useTheme(): Theme {
   const scheme = useColorScheme();
-  const mode = scheme === 'dark' ? 'dark' : 'light';
+  const { preference } = useThemePref();
+  const mode = preference === 'system' ? (scheme === 'dark' ? 'dark' : 'light') : preference;
   const colors = mode === 'dark' ? darkColors : lightColors;
   return {
     mode,
