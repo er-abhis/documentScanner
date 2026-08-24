@@ -5,7 +5,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   ScanLine,
   ImagePlus,
-  Combine,
+  Grid2x2,
   FolderOpen,
   type LucideIcon,
 } from 'lucide-react-native';
@@ -31,8 +31,8 @@ export function ToolsScreen() {
       title: 'Create',
       tools: [
         { icon: ScanLine, label: 'Scan Document', hint: 'Camera + auto edge detection', onPress: () => navigation.navigate('Scanner') },
+        { icon: Grid2x2, label: 'Collage Studio', hint: 'Templates, frames, export', onPress: () => navigation.navigate('CollageStudio') },
         { icon: ImagePlus, label: 'Image → PDF', hint: 'Pick photos, reorder, export', onPress: importImages },
-        { icon: Combine, label: 'Join Images', hint: 'Stack photos into one', onPress: () => navigation.navigate('Joiner') },
       ],
     },
     {

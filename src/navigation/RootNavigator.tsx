@@ -12,6 +12,8 @@ import { ScannerScreen } from '../screens/ScannerScreen';
 import { PagesScreen } from '../screens/PagesScreen';
 import { DocumentScreen } from '../screens/DocumentScreen';
 import { JoinerScreen } from '../screens/JoinerScreen';
+import { CollageStudioScreen } from '../screens/CollageStudioScreen';
+import { CollageEditorScreen } from '../screens/CollageEditorScreen';
 import { OrganizeScreen } from '../screens/OrganizeScreen';
 import { EditorScreen } from '../screens/EditorScreen';
 import { AnnotateScreen } from '../screens/AnnotateScreen';
@@ -48,6 +50,8 @@ export function RootNavigator() {
         <Stack.Screen name="Scanner" component={ScannerScreen} />
         <Stack.Screen name="Pages" component={PagesScreen} />
         <Stack.Screen name="Joiner" component={JoinerScreen} />
+        <Stack.Screen name="CollageStudio" component={CollageStudioScreen} />
+        <Stack.Screen name="CollageEditor" component={CollageEditorScreen} />
         <Stack.Screen name="Document" component={DocumentScreen} />
         <Stack.Screen name="Organize" component={OrganizeScreen} />
         <Stack.Screen name="Editor" component={EditorScreen} />

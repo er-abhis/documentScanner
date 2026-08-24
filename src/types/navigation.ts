@@ -19,6 +19,8 @@ export type RootStackParamList = {
   Scanner: { append?: boolean } | undefined;
   Pages: undefined;
   Joiner: undefined;
+  CollageStudio: undefined;
+  CollageEditor: { templateId: string };
   Document: { id: string };
   Organize: { id: string };
   Editor: { uri: string; onDone: (uri: string) => void };

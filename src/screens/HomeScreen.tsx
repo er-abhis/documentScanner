@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import LinearGradient from 'react-native-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
-import { ScanLine, ImagePlus, Combine, LayoutGrid, ChevronRight } from 'lucide-react-native';
+import { ScanLine, ImagePlus, LayoutGrid, ChevronRight, Grid2x2 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { Screen } from '../components/Screen';
 import { Text } from '../components/Text';
@@ -67,8 +67,8 @@ export function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
       <Text variant="title" style={styles.sectionTitle}>
         Quick tools
       </Text>
+      <QuickRow icon={Grid2x2} label="Collage Studio" hint="Beautiful photo layouts" onPress={() => navigation.navigate('CollageStudio')} />
       <QuickRow icon={ImagePlus} label="Image → PDF" hint="Photos to a shareable PDF" onPress={importImages} />
-      <QuickRow icon={Combine} label="Join Images" hint="Stack photos into one" onPress={() => navigation.navigate('Joiner')} />
       <QuickRow icon={LayoutGrid} label="All Tools" hint="Every tool in one place" onPress={() => navigation.navigate('Tools')} />
 
       {recent.length > 0 && (
