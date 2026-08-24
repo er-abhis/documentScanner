@@ -1,6 +1,7 @@
 import RNFS from 'react-native-fs';
 import { buildPdfBase64 } from '../pdf';
 import { rotateImage } from '../image/rotate';
+import { rasterizePdf } from '../pdf/raster';
 
 export type DocumentMeta = {
   id: string;
@@ -148,6 +149,35 @@ export async function reorganizeDocument(
 
   await generateDocumentPdf(id);
   return updated;
+}
+
+/**
+ * Save a PDF file (e.g. an edited external PDF) as a library document. Copies
+ * the PDF in and rasterizes page 1 as a thumbnail. Keeps the real PDF (vector),
+ * not page images.
+ */
+export async function savePdfDocument(pdfUri: string, name: string): Promise<DocumentMeta> {
+  await ensureBase();
+  const now = Date.now();
+  const id = `doc_${now}`;
+  const dir = docDir(id);
+  await RNFS.mkdir(dir);
+  await RNFS.copyFile(strip(pdfUri), `${dir}/document.pdf`);
+
+  let pageFiles: string[] = [];
+  try {
+    const pages = await rasterizePdf(`file://${dir}/document.pdf`, 1);
+    if (pages[0]) {
+      await RNFS.copyFile(strip(pages[0]), `${dir}/page_0.jpg`);
+      pageFiles = ['page_0.jpg'];
+    }
+  } catch {
+    // no thumbnail if rasterization fails; card falls back to placeholder
+  }
+
+  const meta: DocumentMeta = { id, name, createdAt: now, updatedAt: now, pageFiles, pdfFile: 'document.pdf' };
+  await writeIndex([meta, ...(await listDocuments())]);
+  return meta;
 }
 
 export async function renameDocument(id: string, name: string) {

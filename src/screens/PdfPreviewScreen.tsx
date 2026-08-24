@@ -13,7 +13,6 @@ import {
   ChevronRight,
   Pen,
 } from 'lucide-react-native';
-import { rasterizePdf } from '../services/pdf/raster';
 import { Screen } from '../components/Screen';
 import { Header } from '../components/Header';
 import { Text } from '../components/Text';
@@ -34,7 +33,6 @@ export function PdfPreviewScreen({ route, navigation }: RootScreenProps<'PdfPrev
   const { uri, name, editable } = route.params;
   const pdfRef = useRef<React.ComponentRef<typeof Pdf>>(null);
   const [loading, setLoading] = useState(true);
-  const [rasterizing, setRasterizing] = useState(false);
   const [error, setError] = useState(false);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -42,16 +40,7 @@ export function PdfPreviewScreen({ route, navigation }: RootScreenProps<'PdfPrev
   const [fit, setFit] = useState<Fit>(FIT_WIDTH);
   const [immersive, setImmersive] = useState(false);
 
-  const openEditor = async () => {
-    setRasterizing(true);
-    try {
-      const pages = await rasterizePdf(uri);
-      setRasterizing(false);
-      if (pages.length) navigation.replace('PdfEditor', { pages, name });
-    } catch {
-      setRasterizing(false);
-    }
-  };
+  const openEditor = () => navigation.navigate('PdfTextEditor', { uri, name });
 
   const jump = (p: number) => {
     if (!Number.isFinite(p) || total < 1) return;
@@ -61,14 +50,6 @@ export function PdfPreviewScreen({ route, navigation }: RootScreenProps<'PdfPrev
       setPage(n);
     }
   };
-
-  if (rasterizing) {
-    return (
-      <Screen center>
-        <LoadingState label="Preparing to edit…" />
-      </Screen>
-    );
-  }
 
   return (
     <Screen padded={false} edges={immersive ? [] : ['top', 'left', 'right', 'bottom']}>

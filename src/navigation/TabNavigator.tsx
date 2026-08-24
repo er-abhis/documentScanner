@@ -46,7 +46,7 @@ export function TabNavigator() {
         component={ScanPlaceholder}
         options={{
           tabBarLabel: 'Scan',
-          tabBarIcon: ({ size }) => <ScanLine color={theme.colors.brand} size={size + 2} />,
+          tabBarIcon: ({ color, size }) => <ScanLine color={color} size={size + 2} />,
         }}
         listeners={({ navigation }) => ({
           tabPress: e => {

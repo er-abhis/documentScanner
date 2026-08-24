@@ -12,6 +12,7 @@ export type StrokeTool = 'pen' | 'highlight';
 
 export type Stroke = {
   id: string;
+  kind: 'stroke';
   tool: StrokeTool;
   color: string;
   /** stroke width as a fraction of the content's smaller side (resolution-independent) */
@@ -20,10 +21,24 @@ export type Stroke = {
   points: Pt[];
 };
 
+export type ShapeKind = 'rect' | 'oval' | 'line' | 'arrow';
+
+export type ShapeItem = {
+  id: string;
+  kind: 'shape';
+  shape: ShapeKind;
+  a: Pt; // start (normalized)
+  b: Pt; // end (normalized)
+  color: string;
+  width: number;
+  opacity: number;
+};
+
 /** A text overlay placed on a page/image. Position is the text's top-left in
  * normalized [0,1] coords; size is a fraction of the content's smaller side. */
 export type TextItem = {
   id: string;
+  kind: 'text';
   text: string;
   x: number;
   y: number;
@@ -32,7 +47,7 @@ export type TextItem = {
   opacity: number;
 };
 
-export type Annotation = Stroke | TextItem;
+export type Annotation = Stroke | ShapeItem | TextItem;
 
 /** default palette + sizes shared by the drawing toolbar */
 export const PEN_COLORS = ['#111111', '#E5484D', '#2B6BE4', '#2F9E44', '#F08C00', '#FFFFFF'];

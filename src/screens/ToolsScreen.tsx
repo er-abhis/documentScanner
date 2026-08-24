@@ -8,11 +8,13 @@ import {
   Grid2x2,
   FolderOpen,
   RefreshCw,
+  ScanText,
   type LucideIcon,
 } from 'lucide-react-native';
 import { Screen } from '../components/Screen';
 import { Text } from '../components/Text';
 import { useImportImages } from '../hooks/useImportImages';
+import { pickImages } from '../services/gallery';
 import { useTheme } from '../theme';
 import type { RootStackParamList } from '../types/navigation';
 
@@ -27,6 +29,11 @@ export function ToolsScreen() {
   const navigation = useNavigation<Nav>();
   const importImages = useImportImages();
 
+  const ocrImage = async () => {
+    const [uri] = await pickImages(1);
+    if (uri) navigation.navigate('Ocr', { uri, name: 'Image', kind: 'image' });
+  };
+
   const groups: { title: string; tools: Tool[] }[] = [
     {
       title: 'Create',
@@ -35,6 +42,7 @@ export function ToolsScreen() {
         { icon: Grid2x2, label: 'Collage Studio', hint: 'Templates, frames, export', onPress: () => navigation.navigate('CollageStudio') },
         { icon: ImagePlus, label: 'Image → PDF', hint: 'Pick photos, reorder, export', onPress: importImages },
         { icon: RefreshCw, label: 'Convert Image', hint: 'JPG · PNG · WEBP', onPress: () => navigation.navigate('Convert') },
+        { icon: ScanText, label: 'Scan to Text', hint: 'On-device OCR from a photo', onPress: ocrImage },
       ],
     },
     {

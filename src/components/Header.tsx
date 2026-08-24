@@ -28,7 +28,7 @@ export function Header({ title, onBack, right }: Props) {
       <Text variant="title" numberOfLines={1} style={styles.title}>
         {title ?? ''}
       </Text>
-      <View style={[styles.side, styles.right]}>{right}</View>
+      <View style={styles.right}>{right}</View>
     </View>
   );
 }
@@ -38,9 +38,8 @@ const styles = StyleSheet.create({
     height: 52,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
   },
-  side: { width: 44, justifyContent: 'center' },
-  right: { alignItems: 'flex-end' },
-  title: { flex: 1, textAlign: 'center' },
+  side: { minWidth: 44, justifyContent: 'center' },
+  right: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', minWidth: 44 },
+  title: { flex: 1, textAlign: 'center', marginHorizontal: 8 },
 });

@@ -1,0 +1,117 @@
+<!doctype html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<style>
+  html,body { margin:0; padding:0; background:#ECEFF3; font-family: -apple-system, Roboto, sans-serif; -webkit-user-select:none; }
+  #root { padding:8px 0 24px; }
+  .page { position:relative; margin:8px auto; background:#fff; box-shadow:0 1px 8px #00000022; }
+  .page canvas { display:block; }
+  .tl { position:absolute; top:0; left:0; }
+  .tl span { position:absolute; white-space:pre; color:transparent; cursor:pointer; transform-origin:0 0; }
+  .tl span.sel { background:rgba(46,107,255,0.20); outline:1px solid #2E6BFF; color:transparent; }
+  .edited { background:rgba(46,180,120,0.18); outline:1px solid #2EB478; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  // Polyfills for older Android WebViews (pdf.js may call these).
+  if (typeof Promise.try !== 'function') {
+    Promise.try = function (fn) { var a = [].slice.call(arguments, 1); return new Promise(function (res) { res(fn.apply(null, a)); }); };
+  }
+  if (typeof Promise.withResolvers !== 'function') {
+    Promise.withResolvers = function () { var r, j; var p = new Promise(function (a, b) { r = a; j = b; }); return { promise: p, resolve: r, reject: j }; };
+  }
+</script>
+<script type="module">
+import * as pdfjs from './pdf.mjs';
+pdfjs.GlobalWorkerOptions.workerSrc = './pdf.worker.mjs';
+
+const RN = window.ReactNativeWebView;
+const post = (m) => RN && RN.postMessage(JSON.stringify(m));
+let doc = null;
+
+async function load(b64) {
+  try {
+    const data = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    doc = await pdfjs.getDocument({ data }).promise;
+    const root = document.getElementById('root');
+    root.innerHTML = '';
+    let hasText = false;
+    for (let i = 1; i <= doc.numPages; i++) {
+      const page = await doc.getPage(i);
+      // fit the page to the WebView width so text is visible + tappable
+      const pw = page.getViewport({ scale: 1 }).width;
+      const SCALE = Math.max(0.2, (window.innerWidth - 16) / pw);
+      const vp = page.getViewport({ scale: SCALE });
+      const vp1 = page.getViewport({ scale: 1 });
+      const wrap = document.createElement('div');
+      wrap.className = 'page';
+      wrap.style.width = vp.width + 'px';
+      wrap.style.height = vp.height + 'px';
+      const cv = document.createElement('canvas');
+      cv.width = vp.width; cv.height = vp.height;
+      wrap.appendChild(cv);
+      root.appendChild(wrap);
+      await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+
+      const tc = await page.getTextContent();
+      if (tc.items.length) hasText = true;
+      const tl = document.createElement('div');
+      tl.className = 'tl';
+      tl.style.width = vp.width + 'px'; tl.style.height = vp.height + 'px';
+      wrap.appendChild(tl);
+      for (const it of tc.items) {
+        if (!it.str || !it.str.trim()) continue;
+        const t = pdfjs.Util.transform(vp.transform, it.transform);   // display coords
+        const t1 = pdfjs.Util.transform(vp1.transform, it.transform); // pdf-point coords (top-left origin)
+        const fsD = Math.hypot(t[0], t[1]);
+        const fs1 = Math.hypot(it.transform[0], it.transform[1]);
+        const span = document.createElement('span');
+        span.textContent = it.str;
+        span.style.left = t[4] + 'px';
+        span.style.top = (t[5] - fsD) + 'px';
+        span.style.fontSize = fsD + 'px';
+        span.style.lineHeight = fsD + 'px';
+        span.dataset.meta = JSON.stringify({
+          page: i, str: it.str,
+          x: t1[4], yTop: t1[5], w: it.width, fontSize: fs1,
+          fontName: it.fontName || '', pageW: vp1.width, pageH: vp1.height,
+        });
+        span.onclick = () => {
+          document.querySelectorAll('.tl span.sel').forEach(s => s.classList.remove('sel'));
+          span.classList.add('sel');
+          post({ type: 'select', meta: JSON.parse(span.dataset.meta), id: span.id });
+        };
+        span.id = 'sp_' + i + '_' + tl.children.length;
+        tl.appendChild(span);
+      }
+    }
+    post({ type: 'loaded', pages: doc.numPages, hasText });
+  } catch (e) {
+    post({ type: 'error', message: String(e && e.message || e) });
+  }
+}
+
+// mark a span as edited/deleted for visual feedback
+function markEdited(id, deleted, text) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('sel');
+  el.classList.add('edited');
+  el.style.color = deleted ? 'transparent' : '#0B1524';
+  el.style.textDecoration = deleted ? 'line-through' : 'none';
+  if (!deleted && text != null) el.textContent = text;
+}
+
+function handle(m) {
+  if (m.type === 'load') load(m.b64);
+  else if (m.type === 'edited') markEdited(m.id, m.deleted, m.text);
+}
+window.addEventListener('message', e => { try { handle(JSON.parse(e.data)); } catch (_) {} });
+document.addEventListener('message', e => { try { handle(JSON.parse(e.data)); } catch (_) {} });
+post({ type: 'ready' });
+</script>
+</body>
+</html>

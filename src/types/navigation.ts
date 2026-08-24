@@ -27,6 +27,8 @@ export type RootStackParamList = {
   Organize: { id: string };
   // edit an app document by id, OR external/rasterized pages by uri list
   PdfEditor: { id: string } | { pages: string[]; name: string };
+  PdfTextEditor: { uri: string; name: string };
+  Ocr: { uri: string; name: string; kind: 'pdf' | 'image' };
   PdfPreview: { uri: string; name: string; editable?: boolean };
   Editor: { uri: string; onDone: (uri: string) => void };
   Annotate: { uri: string; onDone: (uri: string) => void };

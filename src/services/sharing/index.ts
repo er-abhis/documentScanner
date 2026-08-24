@@ -48,6 +48,17 @@ export async function shareFile(
   }
 }
 
+/** Share plain text (e.g. OCR output) via the native sheet. */
+export async function shareText(text: string): Promise<boolean> {
+  try {
+    await Share.open({ message: text, failOnCancel: false });
+    return true;
+  } catch (e: unknown) {
+    if (isCancel(e)) return false;
+    throw e;
+  }
+}
+
 /** Share several local files at once (e.g. batch-converted images). */
 export async function shareFiles(uris: string[], mimeType: string): Promise<boolean> {
   try {
