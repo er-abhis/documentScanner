@@ -12,6 +12,7 @@ import { ScannerScreen } from '../screens/ScannerScreen';
 import { PagesScreen } from '../screens/PagesScreen';
 import { DocumentsScreen } from '../screens/DocumentsScreen';
 import { DocumentScreen } from '../screens/DocumentScreen';
+import { JoinerScreen } from '../screens/JoinerScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { EditorScreen } from '../screens/EditorScreen';
 import { PdfPreviewScreen } from '../screens/PdfPreviewScreen';
@@ -46,6 +47,7 @@ export function RootNavigator() {
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Scanner" component={ScannerScreen} />
         <Stack.Screen name="Pages" component={PagesScreen} />
+        <Stack.Screen name="Joiner" component={JoinerScreen} />
         <Stack.Screen name="Documents" component={DocumentsScreen} />
         <Stack.Screen name="Document" component={DocumentScreen} />
         <Stack.Screen name="Settings" component={SettingsScreen} />

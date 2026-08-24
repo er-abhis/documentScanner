@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import LinearGradient from 'react-native-linear-gradient';
-import { FileText, ScanLine, Settings as SettingsIcon, ChevronRight, ImagePlus } from 'lucide-react-native';
+import { FileText, ScanLine, Settings as SettingsIcon, ChevronRight, ImagePlus, Combine } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { Screen } from '../components/Screen';
 import { Text } from '../components/Text';
@@ -74,6 +74,12 @@ export function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
         label="Import Images"
         hint="Turn photos into a document or PDF"
         onPress={importImages}
+      />
+      <QuickRow
+        icon={Combine}
+        label="Join Images"
+        hint="Merge photos into one image"
+        onPress={() => navigation.navigate('Joiner')}
       />
 
       <Text variant="title" style={styles.sectionTitle}>

@@ -4,6 +4,7 @@ export type RootStackParamList = {
   Home: undefined;
   Scanner: { append?: boolean } | undefined;
   Pages: undefined;
+  Joiner: undefined;
   Documents: undefined;
   Document: { id: string };
   Settings: undefined;
