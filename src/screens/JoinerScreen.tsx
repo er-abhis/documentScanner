@@ -15,6 +15,7 @@ import { joinImages, type JoinDirection } from '../services/image/join';
 import { saveDocument, generateDocumentPdf } from '../services/storage';
 import { buildPdfBase64 } from '../services/pdf';
 import { shareImage, sharePdf } from '../services/sharing';
+import { useI18n } from '../i18n';
 import { useTheme } from '../theme';
 import type { RootScreenProps } from '../types/navigation';
 
@@ -27,13 +28,14 @@ async function joinedToPdf(imageUri: string): Promise<string> {
 }
 
 const BACKGROUNDS = [
-  { key: '#FFFFFF', label: 'White' },
-  { key: '#F2F2F7', label: 'Light' },
-  { key: '#111111', label: 'Black' },
+  { key: '#FFFFFF', labelKey: 'joiner.bgWhite' as const },
+  { key: '#F2F2F7', labelKey: 'joiner.bgLight' as const },
+  { key: '#111111', labelKey: 'joiner.bgBlack' as const },
 ];
 
 export function JoinerScreen({ navigation }: RootScreenProps<'Joiner'>) {
   const theme = useTheme();
+  const { t, lang } = useI18n();
   const [uris, setUris] = useState<string[]>([]);
   const [direction, setDirection] = useState<JoinDirection>('vertical');
   const [spacing, setSpacing] = useState(16);
@@ -87,7 +89,7 @@ export function JoinerScreen({ navigation }: RootScreenProps<'Joiner'>) {
     if (!preview) return;
     setBusy(true);
     try {
-      const meta = await saveDocument([{ uri: preview }], 'Joined image');
+      const meta = await saveDocument([{ uri: preview }], t('joiner.docName'));
       if (asPdf) await generateDocumentPdf(meta.id);
       navigation.reset({
         index: 0,
@@ -95,7 +97,7 @@ export function JoinerScreen({ navigation }: RootScreenProps<'Joiner'>) {
       });
     } catch {
       setBusy(false);
-      Alert.alert('Couldn’t save', 'Please try again.');
+      Alert.alert(t('joiner.saveFailTitle'), t('joiner.tryAgain'));
     }
   };
 
@@ -105,12 +107,12 @@ export function JoinerScreen({ navigation }: RootScreenProps<'Joiner'>) {
     try {
       if (asPdf) {
         const pdf = await joinedToPdf(preview);
-        await sharePdf(pdf, 'Joined');
+        await sharePdf(pdf, t('joiner.pdfName'));
       } else {
         await shareImage(preview);
       }
     } catch {
-      Alert.alert('Couldn’t share', 'Please try again.');
+      Alert.alert(t('joiner.shareFailTitle'), t('joiner.tryAgain'));
     } finally {
       setBusy(false);
     }
@@ -119,7 +121,7 @@ export function JoinerScreen({ navigation }: RootScreenProps<'Joiner'>) {
   if (busy) {
     return (
       <Screen center>
-        <LoadingState label="Saving…" />
+        <LoadingState label={t('joiner.saving')} />
       </Screen>
     );
   }
@@ -127,7 +129,7 @@ export function JoinerScreen({ navigation }: RootScreenProps<'Joiner'>) {
   if (uris.length === 0) {
     return (
       <Screen center>
-        <LoadingState label="Opening gallery…" />
+        <LoadingState label={t('joiner.openingGallery')} />
       </Screen>
     );
   }
@@ -135,9 +137,11 @@ export function JoinerScreen({ navigation }: RootScreenProps<'Joiner'>) {
   return (
     <Screen padded={false}>
       <View style={styles.pad}>
-        <Header title="Join Images" onBack={() => navigation.goBack()} />
+        <Header title={t('joiner.title')} onBack={() => navigation.goBack()} />
         <Text variant="caption" color="textSecondary" style={styles.sub}>
-          {uris.length} image{uris.length === 1 ? '' : 's'} · live preview
+          {lang === 'hi'
+            ? `${uris.length} इमेज · लाइव प्रीव्यू`
+            : `${uris.length} image${uris.length === 1 ? '' : 's'} · live preview`}
         </Text>
       </View>
 
@@ -145,7 +149,7 @@ export function JoinerScreen({ navigation }: RootScreenProps<'Joiner'>) {
         {preview ? (
           <Image source={{ uri: preview }} style={styles.preview} resizeMode="contain" />
         ) : (
-          <EmptyState icon={Rows3} title="Composing…" />
+          <EmptyState icon={Rows3} title={t('joiner.composing')} />
         )}
       </View>
 
@@ -153,37 +157,37 @@ export function JoinerScreen({ navigation }: RootScreenProps<'Joiner'>) {
         {/* direction */}
         <Segmented
           options={[
-            { key: 'vertical', label: 'Vertical', icon: Rows3 },
-            { key: 'horizontal', label: 'Horizontal', icon: Columns3 },
+            { key: 'vertical', label: t('joiner.vertical'), icon: Rows3 },
+            { key: 'horizontal', label: t('joiner.horizontal'), icon: Columns3 },
           ]}
           value={direction}
           onChange={k => setDirection(k as JoinDirection)}
         />
 
-        <Slider label="Spacing" value={spacing} min={0} max={60} onChange={setSpacing} />
+        <Slider label={t('joiner.spacing')} value={spacing} min={0} max={60} onChange={setSpacing} />
 
         {/* background */}
         <Text variant="caption" color="textSecondary" style={styles.optLabel}>
-          Background
+          {t('joiner.background')}
         </Text>
         <View style={styles.chips}>
           {BACKGROUNDS.map(b => (
             <Chip
               key={b.key}
-              label={b.label}
+              label={t(b.labelKey)}
               active={background === b.key}
               swatch={b.key}
               onPress={() => setBackground(b.key)}
             />
           ))}
-          <Chip label="Border" active={border} onPress={() => setBorder(v => !v)} />
+          <Chip label={t('joiner.border')} active={border} onPress={() => setBorder(v => !v)} />
         </View>
       </View>
 
       <View style={[styles.footer, { borderTopColor: theme.colors.border }]}>
         <View style={styles.footerRow}>
           <Button
-            title="Add"
+            title={t('common.add')}
             icon={Plus}
             variant="secondary"
             fullWidth={false}
@@ -191,7 +195,7 @@ export function JoinerScreen({ navigation }: RootScreenProps<'Joiner'>) {
             style={styles.flex1}
           />
           <Button
-            title="Share"
+            title={t('common.share')}
             icon={Share2}
             variant="secondary"
             fullWidth={false}
@@ -199,16 +203,16 @@ export function JoinerScreen({ navigation }: RootScreenProps<'Joiner'>) {
             style={[styles.flex1, styles.gapL]}
           />
         </View>
-        <Button title="Save to Library" icon={Save} onPress={() => setSheet('save')} style={styles.gapT} />
+        <Button title={t('joiner.saveToLibrary')} icon={Save} onPress={() => setSheet('save')} style={styles.gapT} />
       </View>
 
       <ActionSheet
         visible={sheet !== null}
-        title={sheet === 'share' ? 'Share as' : 'Save as'}
+        title={sheet === 'share' ? t('joiner.shareAs') : t('joiner.saveAs')}
         onClose={() => setSheet(null)}
         actions={[
           {
-            label: 'Image (JPG)',
+            label: t('joiner.imageJpg'),
             icon: ImageIcon,
             onPress: () => (sheet === 'share' ? shareAs(false) : saveAs(false)),
           },

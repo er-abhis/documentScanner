@@ -15,18 +15,21 @@ import { AnnotationCanvas, type CanvasTool } from '../components/annotate/Annota
 import { flattenAnnotations } from '../services/annotate/flatten';
 import { PEN_COLORS, HIGHLIGHT_COLORS, type Annotation, type Pt } from '../services/annotate/types';
 import { HIT_SLOP, useTheme } from '../theme';
+import { useT } from '../i18n';
+import type { StringKey } from '../i18n/strings';
 import type { RootScreenProps } from '../types/navigation';
 
 const HISTORY_MAX = 50;
-const SHAPE_TOOLS: { key: CanvasTool; icon: LucideIcon; label: string }[] = [
-  { key: 'rect', icon: Square, label: 'Box' },
-  { key: 'oval', icon: Circle, label: 'Circle' },
-  { key: 'line', icon: Minus, label: 'Line' },
-  { key: 'arrow', icon: MoveUpRight, label: 'Arrow' },
+const SHAPE_TOOLS: { key: CanvasTool; icon: LucideIcon; labelKey: StringKey }[] = [
+  { key: 'rect', icon: Square, labelKey: 'annotate.box' },
+  { key: 'oval', icon: Circle, labelKey: 'annotate.circle' },
+  { key: 'line', icon: Minus, labelKey: 'annotate.line' },
+  { key: 'arrow', icon: MoveUpRight, labelKey: 'annotate.arrow' },
 ];
 
 export function AnnotateScreen({ route, navigation }: RootScreenProps<'Annotate'>) {
   const theme = useTheme();
+  const t = useT();
   const { uri, onDone } = route.params;
 
   const [anns, setAnnsState] = useState<Annotation[]>([]);
@@ -86,18 +89,18 @@ export function AnnotateScreen({ route, navigation }: RootScreenProps<'Annotate'
       navigation.goBack();
     } catch {
       setSaving(false);
-      Alert.alert('Couldn’t save', 'Please try again.');
+      Alert.alert(t('annotate.saveFail'), t('annotate.tryAgain'));
     }
   };
   const back = () => {
     if (anns.length === 0 && past.current.length === 0) return navigation.goBack();
-    Alert.alert('Discard drawing?', 'Your annotations will be lost.', [
-      { text: 'Keep Editing', style: 'cancel' },
-      { text: 'Discard', style: 'destructive', onPress: () => navigation.goBack() },
+    Alert.alert(t('annotate.discardTitle'), t('annotate.discardMsg'), [
+      { text: t('annotate.keepEditing'), style: 'cancel' },
+      { text: t('annotate.discard'), style: 'destructive', onPress: () => navigation.goBack() },
     ]);
   };
 
-  if (saving) return (<Screen center><LoadingState label="Saving…" /></Screen>);
+  if (saving) return (<Screen center><LoadingState label={t('annotate.saving')} /></Screen>);
 
   const isHi = tool === 'highlight';
   const isText = tool === 'text';
@@ -113,7 +116,7 @@ export function AnnotateScreen({ route, navigation }: RootScreenProps<'Annotate'
   return (
     <Screen padded={false}>
       <View style={styles.head}>
-        <Header title="Draw" onBack={back} right={<Pressable onPress={save} hitSlop={HIT_SLOP}><Check size={theme.iconSize.md} color={theme.colors.brand} /></Pressable>} />
+        <Header title={t('annotate.title')} onBack={back} right={<Pressable onPress={save} hitSlop={HIT_SLOP}><Check size={theme.iconSize.md} color={theme.colors.brand} /></Pressable>} />
       </View>
 
       <View style={[styles.canvas, { backgroundColor: theme.colors.surfaceSunken }]}>
@@ -127,27 +130,27 @@ export function AnnotateScreen({ route, navigation }: RootScreenProps<'Annotate'
         {showColors && (
           <View style={styles.colors}>
             {colors.map(c => (
-              <Pressable key={c} onPress={() => setColor(c)} hitSlop={HIT_SLOP} accessibilityLabel={`Color ${c}`}
+              <Pressable key={c} onPress={() => setColor(c)} hitSlop={HIT_SLOP} accessibilityLabel={`${t('annotate.color')} ${c}`}
                 style={[styles.swatch, { backgroundColor: c, borderColor: color === c ? theme.colors.brand : theme.colors.border, borderWidth: color === c ? 3 : StyleSheet.hairlineWidth }]} />
             ))}
           </View>
         )}
         <View style={styles.sliderWrap}>
-          <Slider label={tool === 'erase' ? 'Eraser' : isText ? 'Text size' : 'Size'} value={size} min={isText ? 16 : 2} max={isText ? 96 : 40} onChange={v => setSize(Math.round(v))} format={v => `${Math.round(v)}`} />
+          <Slider label={tool === 'erase' ? t('annotate.eraser') : isText ? t('annotate.textSize') : t('annotate.size')} value={size} min={isText ? 16 : 2} max={isText ? 96 : 40} onChange={v => setSize(Math.round(v))} format={v => `${Math.round(v)}`} />
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tools}>
-          <ToolBtn active={isText} icon={Type} label="Text" onPress={() => setTool('text')} />
-          <ToolBtn active={tool === 'pen'} icon={Pen} label="Pen" onPress={() => setTool('pen')} />
-          <ToolBtn active={isHi} icon={Highlighter} label="Marker" onPress={() => setTool('highlight')} />
-          {SHAPE_TOOLS.map(s => (<ToolBtn key={s.key} active={tool === s.key} icon={s.icon} label={s.label} onPress={() => setTool(s.key)} />))}
-          <ToolBtn active={tool === 'erase'} icon={Eraser} label="Erase" onPress={() => setTool('erase')} />
+          <ToolBtn active={isText} icon={Type} label={t('annotate.text')} onPress={() => setTool('text')} />
+          <ToolBtn active={tool === 'pen'} icon={Pen} label={t('annotate.pen')} onPress={() => setTool('pen')} />
+          <ToolBtn active={isHi} icon={Highlighter} label={t('annotate.marker')} onPress={() => setTool('highlight')} />
+          {SHAPE_TOOLS.map(s => (<ToolBtn key={s.key} active={tool === s.key} icon={s.icon} label={t(s.labelKey)} onPress={() => setTool(s.key)} />))}
+          <ToolBtn active={tool === 'erase'} icon={Eraser} label={t('annotate.erase')} onPress={() => setTool('erase')} />
           <View style={styles.divider} />
-          <ToolBtn active={false} icon={Undo2} label="Undo" onPress={undo} dim={!past.current.length} />
-          <ToolBtn active={false} icon={Redo2} label="Redo" onPress={redo} dim={!future.current.length} />
+          <ToolBtn active={false} icon={Undo2} label={t('annotate.undo')} onPress={undo} dim={!past.current.length} />
+          <ToolBtn active={false} icon={Redo2} label={t('annotate.redo')} onPress={redo} dim={!future.current.length} />
         </ScrollView>
       </View>
 
-      <TextInputModal visible={!!textModal} title={textModal?.mode === 'edit' ? 'Edit text' : 'Add text'} initial={textModal?.mode === 'edit' ? textModal.initial : ''} onSubmit={submitText} onDelete={textModal?.mode === 'edit' ? deleteText : undefined} onClose={() => setTextModal(null)} />
+      <TextInputModal visible={!!textModal} title={textModal?.mode === 'edit' ? t('annotate.editText') : t('annotate.addText')} initial={textModal?.mode === 'edit' ? textModal.initial : ''} onSubmit={submitText} onDelete={textModal?.mode === 'edit' ? deleteText : undefined} onClose={() => setTextModal(null)} />
     </Screen>
   );
 }

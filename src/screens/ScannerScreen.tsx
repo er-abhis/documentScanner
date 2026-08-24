@@ -6,6 +6,7 @@ import { LoadingState } from '../components/LoadingState';
 import { EmptyState } from '../components/EmptyState';
 import { useDocumentScanner } from '../hooks/useDocumentScanner';
 import { useDraft } from '../state/draft';
+import { useT } from '../i18n';
 import type { RootScreenProps } from '../types/navigation';
 
 /**
@@ -13,6 +14,7 @@ import type { RootScreenProps } from '../types/navigation';
  * draft, then hands off to the Pages editor. Holds no UI of its own.
  */
 export function ScannerScreen({ route, navigation }: RootScreenProps<'Scanner'>) {
+  const t = useT();
   const append = route.params?.append ?? false;
   const { state, scan } = useDocumentScanner();
   const { addPages, clear } = useDraft();
@@ -38,12 +40,12 @@ export function ScannerScreen({ route, navigation }: RootScreenProps<'Scanner'>)
   if (state.status === 'error') {
     return (
       <Screen>
-        <Header title="Scan" onBack={() => navigation.goBack()} />
+        <Header title={t('scanner.title')} onBack={() => navigation.goBack()} />
         <EmptyState
           icon={TriangleAlert}
-          title="Couldn't scan this document"
+          title={t('scanner.errorTitle')}
           subtitle={state.message}
-          actionLabel="Try Again"
+          actionLabel={t('scanner.tryAgain')}
           actionIcon={ScanLine}
           onAction={() => scan()}
         />
@@ -53,7 +55,7 @@ export function ScannerScreen({ route, navigation }: RootScreenProps<'Scanner'>)
 
   return (
     <Screen center>
-      <LoadingState label="Detecting document…" />
+      <LoadingState label={t('scanner.detecting')} />
     </Screen>
   );
 }

@@ -14,6 +14,7 @@ import { type ImgFormat } from '../services/image/encode';
 import { processToFile, type ResizeRatio } from '../services/image/resize';
 import { shareFiles } from '../services/sharing';
 import { haptics } from '../lib/haptics';
+import { useI18n } from '../i18n';
 import { useTheme } from '../theme';
 import type { RootScreenProps } from '../types/navigation';
 
@@ -26,6 +27,7 @@ const MIME: Record<ImgFormat, string> = { jpg: 'image/jpeg', png: 'image/png', w
 
 export function ConvertScreen({ navigation }: RootScreenProps<'Convert'>) {
   const theme = useTheme();
+  const { t, lang } = useI18n();
   const [sources, setSources] = useState<string[]>([]);
   const [format, setFormat] = useState<ImgFormat>('jpg');
   const [quality, setQuality] = useState(0.9);
@@ -56,7 +58,7 @@ export function ConvertScreen({ navigation }: RootScreenProps<'Convert'>) {
       await shareFiles(files, MIME[format]);
     } catch {
       setProgress(null);
-      Alert.alert('Convert failed', 'Please try again.');
+      Alert.alert(t('convert.failTitle'), t('convert.tryAgain'));
     }
   };
 
@@ -69,17 +71,23 @@ export function ConvertScreen({ navigation }: RootScreenProps<'Convert'>) {
       setProgress(null);
       haptics.success();
       const n = files.length;
-      Alert.alert('Saved to Photos', `${n} ${format.toUpperCase()} image${n === 1 ? '' : 's'} saved to your gallery.`);
+      const fmt = format.toUpperCase();
+      Alert.alert(
+        t('convert.savedTitle'),
+        lang === 'hi'
+          ? `${n} ${fmt} इमेज आपकी गैलरी में सहेजी गईं।`
+          : `${n} ${fmt} image${n === 1 ? '' : 's'} saved to your gallery.`,
+      );
     } catch {
       setProgress(null);
-      Alert.alert('Couldn’t save', 'Please allow gallery access and try again.');
+      Alert.alert(t('convert.saveFailTitle'), t('convert.saveFailMsg'));
     }
   };
 
   if (progress !== null) {
     return (
       <Screen center>
-        <LoadingState label={`Converting… ${progress}%`} />
+        <LoadingState label={`${t('convert.converting')} ${progress}%`} />
       </Screen>
     );
   }
@@ -87,15 +95,15 @@ export function ConvertScreen({ navigation }: RootScreenProps<'Convert'>) {
   return (
     <Screen padded={false}>
       <View style={styles.head}>
-        <Header title="Resize & Convert" onBack={() => navigation.goBack()} />
+        <Header title={t('convert.title')} onBack={() => navigation.goBack()} />
       </View>
 
       {sources.length === 0 ? (
         <EmptyState
           icon={RefreshCw}
-          title="Resize & convert images"
-          subtitle="Pick images, resize by % or ratio, and export as JPG, PNG or WEBP."
-          actionLabel="Select Images"
+          title={t('convert.emptyTitle')}
+          subtitle={t('convert.emptySub')}
+          actionLabel={t('convert.selectImages')}
           actionIcon={ImagePlus}
           onAction={pick}
         />
@@ -112,7 +120,9 @@ export function ConvertScreen({ navigation }: RootScreenProps<'Convert'>) {
             )}
             ListHeaderComponent={
               <Text variant="caption" color="textSecondary" style={styles.count}>
-                {sources.length} image{sources.length === 1 ? '' : 's'} · output {format.toUpperCase()}
+                {lang === 'hi'
+                  ? `${sources.length} इमेज · आउटपुट ${format.toUpperCase()}`
+                  : `${sources.length} image${sources.length === 1 ? '' : 's'} · output ${format.toUpperCase()}`}
               </Text>
             }
           />
@@ -136,7 +146,7 @@ export function ConvertScreen({ navigation }: RootScreenProps<'Convert'>) {
             </View>
 
             <Text variant="caption" color="textSecondary" style={styles.optLabel}>
-              Resize
+              {t('convert.resize')}
             </Text>
             <View style={styles.chips}>
               {(['original', '1:1', '4:3', '3:4', '16:9', '9:16'] as ResizeRatio[]).map(r => {
@@ -148,7 +158,7 @@ export function ConvertScreen({ navigation }: RootScreenProps<'Convert'>) {
                     style={[styles.chipSm, { backgroundColor: on ? theme.colors.brand : theme.colors.surfaceAlt, borderRadius: theme.radius.pill }]}
                   >
                     <Text variant="caption" style={{ color: on ? theme.colors.onBrand : theme.colors.textSecondary }}>
-                      {r === 'original' ? 'Original' : r}
+                      {r === 'original' ? t('convert.original') : r}
                     </Text>
                   </Pressable>
                 );
@@ -170,16 +180,16 @@ export function ConvertScreen({ navigation }: RootScreenProps<'Convert'>) {
                 );
               })}
             </View>
-            <Slider label="Scale" value={scale} min={0.1} max={1} onChange={setScale} format={v => `${Math.round(v * 100)}%`} />
+            <Slider label={t('convert.scale')} value={scale} min={0.1} max={1} onChange={setScale} format={v => `${Math.round(v * 100)}%`} />
 
             {format !== 'png' && (
-              <Slider label="Quality" value={quality} min={0.3} max={1} onChange={setQuality} format={v => `${Math.round(v * 100)}%`} />
+              <Slider label={t('convert.quality')} value={quality} min={0.3} max={1} onChange={setQuality} format={v => `${Math.round(v * 100)}%`} />
             )}
 
             <View style={styles.actions}>
-              <Button title="Add" icon={ImagePlus} variant="secondary" fullWidth={false} style={styles.flex1} onPress={pick} />
-              <Button title="Save" icon={Save} variant="secondary" fullWidth={false} style={[styles.flex1, styles.gap]} onPress={save} />
-              <Button title="Share" icon={Share2} fullWidth={false} style={[styles.flex1, styles.gap]} onPress={share} />
+              <Button title={t('common.add')} icon={ImagePlus} variant="secondary" fullWidth={false} style={styles.flex1} onPress={pick} />
+              <Button title={t('common.save')} icon={Save} variant="secondary" fullWidth={false} style={[styles.flex1, styles.gap]} onPress={save} />
+              <Button title={t('common.share')} icon={Share2} fullWidth={false} style={[styles.flex1, styles.gap]} onPress={share} />
             </View>
           </View>
         </>

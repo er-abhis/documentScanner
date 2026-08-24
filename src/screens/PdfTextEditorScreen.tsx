@@ -16,6 +16,7 @@ import { applyTextEdits, type PdfTextEdit } from '../services/pdf/textEdit';
 import { savePdfDocument } from '../services/storage';
 import { rasterizePdf } from '../services/pdf/raster';
 import { PEN_COLORS } from '../services/annotate/types';
+import { useT } from '../i18n';
 import { HIT_SLOP, useTheme } from '../theme';
 import type { RootScreenProps } from '../types/navigation';
 
@@ -26,6 +27,7 @@ type SelMeta = {
 
 export function PdfTextEditorScreen({ route, navigation }: RootScreenProps<'PdfTextEditor'>) {
   const theme = useTheme();
+  const t = useT();
   const { uri, name } = route.params;
   const webRef = useRef<any>(null);
   const b64 = useRef<string | null>(null);
@@ -41,7 +43,8 @@ export function PdfTextEditorScreen({ route, navigation }: RootScreenProps<'PdfT
   useEffect(() => {
     RNFS.readFile(uri.replace(/^file:\/\//, ''), 'base64')
       .then(d => (b64.current = d))
-      .catch(() => Alert.alert('Couldn’t open', 'This PDF could not be read.'));
+      .catch(() => Alert.alert(t('pdfTextEditor.openFail'), t('pdfTextEditor.openFailMsg')));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uri]);
 
   const post = (msg: object) => webRef.current?.postMessage(JSON.stringify(msg));
@@ -61,8 +64,9 @@ export function PdfTextEditorScreen({ route, navigation }: RootScreenProps<'PdfT
       setColor('#111111');
     } else if (m.type === 'error') {
       setLoading(false);
-      Alert.alert('Couldn’t render', m.message ?? 'Unknown error');
+      Alert.alert(t('pdfTextEditor.renderFail'), m.message ?? t('pdfTextEditor.unknownError'));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const recordEdit = (newText: string | null) => {
@@ -79,7 +83,7 @@ export function PdfTextEditorScreen({ route, navigation }: RootScreenProps<'PdfT
 
   const save = async () => {
     if (edits.length === 0) {
-      Alert.alert('No changes', 'Select text to replace or delete first.');
+      Alert.alert(t('pdfTextEditor.noChanges'), t('pdfTextEditor.noChangesMsg'));
       return;
     }
     setSaving(true);
@@ -89,7 +93,7 @@ export function PdfTextEditorScreen({ route, navigation }: RootScreenProps<'PdfT
       navigation.reset({ index: 0, routes: [{ name: 'Tabs', state: { index: 1, routes: [{ name: 'Home' }, { name: 'Documents' }] } }] });
     } catch {
       setSaving(false);
-      Alert.alert('Couldn’t save', 'Please try again.');
+      Alert.alert(t('pdfTextEditor.saveFail'), t('pdfTextEditor.tryAgain'));
     }
   };
 
@@ -101,11 +105,11 @@ export function PdfTextEditorScreen({ route, navigation }: RootScreenProps<'PdfT
       if (pages.length) navigation.replace('PdfEditor', { pages, name });
     } catch {
       setSaving(false);
-      Alert.alert('Couldn’t open', 'Please try again.');
+      Alert.alert(t('pdfTextEditor.openFail'), t('pdfTextEditor.tryAgain'));
     }
   };
 
-  if (saving) return (<Screen center><LoadingState label="Working…" /></Screen>);
+  if (saving) return (<Screen center><LoadingState label={t('pdfTextEditor.working')} /></Screen>);
 
   return (
     <Screen padded={false}>
@@ -113,10 +117,12 @@ export function PdfTextEditorScreen({ route, navigation }: RootScreenProps<'PdfT
         <Header
           title={name}
           onBack={() => navigation.goBack()}
-          right={<Pressable onPress={save} hitSlop={HIT_SLOP} accessibilityLabel="Save copy"><Check size={theme.iconSize.md} color={theme.colors.brand} /></Pressable>}
+          right={<Pressable onPress={save} hitSlop={HIT_SLOP} accessibilityLabel={t('pdfTextEditor.saveCopy')}><Check size={theme.iconSize.md} color={theme.colors.brand} /></Pressable>}
         />
         <Text variant="caption" color="textSecondary" style={styles.hint}>
-          {scanned ? 'Scanned PDF' : `Tap any text to replace or delete${edits.length ? ` · ${edits.length} edit${edits.length === 1 ? '' : 's'}` : ''}`}
+          {scanned
+            ? t('pdfTextEditor.scannedPdf')
+            : `${t('pdfTextEditor.tapToEdit')}${edits.length ? ` · ${edits.length} ${edits.length === 1 ? t('pdfTextEditor.edit') : t('pdfTextEditor.edits')}` : ''}`}
         </Text>
       </View>
 
@@ -140,14 +146,14 @@ export function PdfTextEditorScreen({ route, navigation }: RootScreenProps<'PdfT
           <View style={[styles.overlay, { backgroundColor: theme.colors.background }]}>
             <EmptyState
               icon={ScanText}
-              title="This is a scanned PDF"
-              subtitle="It has no selectable text. Extract its text with on-device OCR, or annotate it."
-              actionLabel="Extract text (OCR)"
+              title={t('pdfTextEditor.scannedTitle')}
+              subtitle={t('pdfTextEditor.scannedSub')}
+              actionLabel={t('pdfTextEditor.extractOcr')}
               actionIcon={ScanText}
               onAction={() => navigation.replace('Ocr', { uri, name, kind: 'pdf' })}
             />
             <View style={styles.scanAlt}>
-              <Button title="Annotate instead" icon={PencilLine} variant="secondary" onPress={annotateInstead} />
+              <Button title={t('pdfTextEditor.annotateInstead')} icon={PencilLine} variant="secondary" onPress={annotateInstead} />
             </View>
           </View>
         )}
@@ -157,10 +163,10 @@ export function PdfTextEditorScreen({ route, navigation }: RootScreenProps<'PdfT
       <Modal visible={!!sel} transparent animationType="slide" onRequestClose={() => setSel(null)}>
         <Pressable style={[styles.backdrop, { backgroundColor: theme.colors.overlay }]} onPress={() => setSel(null)}>
           <Pressable style={[styles.sheet, { backgroundColor: theme.colors.surface }]}>
-            <Text variant="title" style={styles.sheetTitle}>Edit text</Text>
+            <Text variant="title" style={styles.sheetTitle}>{t('pdfTextEditor.editText')}</Text>
             {sel && (
               <Text variant="caption" color="textSecondary" style={styles.detected}>
-                Detected · {cleanFont(sel.meta.fontName)} · {Math.round(sel.meta.fontSize)} pt
+                {t('pdfTextEditor.detected')} · {cleanFont(sel.meta.fontName, t('pdfTextEditor.embeddedFont'))} · {Math.round(sel.meta.fontSize)} {t('pdfTextEditor.pt')}
               </Text>
             )}
             <TextInput
@@ -177,11 +183,11 @@ export function PdfTextEditorScreen({ route, navigation }: RootScreenProps<'PdfT
               ))}
             </View>
             <Text variant="caption" color="textTertiary" style={styles.note}>
-              Replaces the original text in place when the PDF allows it; otherwise overlays a close match at the same position.
+              {t('pdfTextEditor.note')}
             </Text>
             <View style={styles.actions}>
-              <Button title="Delete" variant="danger" fullWidth={false} style={styles.flex1} onPress={() => recordEdit(null)} />
-              <Button title="Replace" fullWidth={false} style={[styles.flex1, styles.gap]} onPress={() => recordEdit(draft.trim())} />
+              <Button title={t('pdfTextEditor.delete')} variant="danger" fullWidth={false} style={styles.flex1} onPress={() => recordEdit(null)} />
+              <Button title={t('pdfTextEditor.replace')} fullWidth={false} style={[styles.flex1, styles.gap]} onPress={() => recordEdit(draft.trim())} />
             </View>
           </Pressable>
         </Pressable>
@@ -190,8 +196,8 @@ export function PdfTextEditorScreen({ route, navigation }: RootScreenProps<'PdfT
   );
 }
 
-function cleanFont(name: string) {
-  if (!name || /^g_|^[a-z]\d/i.test(name)) return 'Embedded font';
+function cleanFont(name: string, embeddedLabel: string) {
+  if (!name || /^g_|^[a-z]\d/i.test(name)) return embeddedLabel;
   return name.replace(/[-_].*$/, '').replace(/([a-z])([A-Z])/g, '$1 $2');
 }
 

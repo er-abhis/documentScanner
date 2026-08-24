@@ -14,10 +14,12 @@ import { savePdfDocument } from '../services/storage';
 import { shareText } from '../services/sharing';
 import { ScanText } from 'lucide-react-native';
 import { useTheme } from '../theme';
+import { useI18n } from '../i18n';
 import type { RootScreenProps } from '../types/navigation';
 
 export function OcrScreen({ route, navigation }: RootScreenProps<'Ocr'>) {
   const theme = useTheme();
+  const { t, lang } = useI18n();
   const { uri, name, kind } = route.params;
 
   const [status, setStatus] = useState<'running' | 'ready' | 'empty' | 'error'>('running');
@@ -30,7 +32,7 @@ export function OcrScreen({ route, navigation }: RootScreenProps<'Ocr'>) {
     try {
       let full: string;
       if (kind === 'pdf') {
-        const pages = await ocrPdf(uri, (d, t) => setProgress(`Page ${d} / ${t}`));
+        const pages = await ocrPdf(uri, (d, total) => setProgress(`${lang === 'hi' ? 'पेज' : 'Page'} ${d} / ${total}`));
         full = pages.join('\n\n');
       } else {
         full = await ocrImage(uri);
@@ -41,13 +43,13 @@ export function OcrScreen({ route, navigation }: RootScreenProps<'Ocr'>) {
     } catch {
       setStatus('error');
     }
-  }, [uri, kind]);
+  }, [uri, kind, lang]);
 
   useEffect(() => { run(); }, [run]);
 
   const copy = () => {
     Clipboard.setString(text);
-    Alert.alert('Copied', 'Text copied to clipboard.');
+    Alert.alert(t('common.copied'), t('ocr.copiedMsg'));
   };
 
   const saveAsPdf = async () => {
@@ -58,17 +60,17 @@ export function OcrScreen({ route, navigation }: RootScreenProps<'Ocr'>) {
       navigation.reset({ index: 0, routes: [{ name: 'Tabs', state: { index: 1, routes: [{ name: 'Home' }, { name: 'Documents' }] } }] });
     } catch {
       setBusy(false);
-      Alert.alert('Couldn’t save', 'Please try again.');
+      Alert.alert(t('ocr.saveFail'), t('ocr.tryAgain'));
     }
   };
 
-  if (busy) return (<Screen center><LoadingState label="Building PDF…" /></Screen>);
+  if (busy) return (<Screen center><LoadingState label={t('ocr.buildingPdf')} /></Screen>);
 
   if (status === 'running') {
     return (
       <Screen>
-        <Header title="Extract text" onBack={() => navigation.goBack()} />
-        <View style={styles.center}><LoadingState label={`Reading text…${progress ? ` ${progress}` : ''}`} /></View>
+        <Header title={t('ocr.extract')} onBack={() => navigation.goBack()} />
+        <View style={styles.center}><LoadingState label={`${t('ocr.readingText')}${progress ? ` ${progress}` : ''}`} /></View>
       </Screen>
     );
   }
@@ -76,12 +78,12 @@ export function OcrScreen({ route, navigation }: RootScreenProps<'Ocr'>) {
   if (status !== 'ready') {
     return (
       <Screen>
-        <Header title="Extract text" onBack={() => navigation.goBack()} />
+        <Header title={t('ocr.extract')} onBack={() => navigation.goBack()} />
         <EmptyState
           icon={ScanText}
-          title={status === 'empty' ? 'No text found' : 'Couldn’t read text'}
-          subtitle={status === 'empty' ? 'This document doesn’t appear to contain readable text.' : 'Please try again.'}
-          actionLabel="Retry"
+          title={status === 'empty' ? t('ocr.noText') : t('ocr.readFail')}
+          subtitle={status === 'empty' ? t('ocr.noTextSub') : t('ocr.tryAgain')}
+          actionLabel={t('common.retry')}
           onAction={run}
         />
       </Screen>
@@ -91,8 +93,8 @@ export function OcrScreen({ route, navigation }: RootScreenProps<'Ocr'>) {
   return (
     <Screen padded={false}>
       <View style={styles.head}>
-        <Header title="Extract text" onBack={() => navigation.goBack()} />
-        <Text variant="caption" color="textSecondary" style={styles.hint}>Recognized on-device · edit before exporting</Text>
+        <Header title={t('ocr.extract')} onBack={() => navigation.goBack()} />
+        <Text variant="caption" color="textSecondary" style={styles.hint}>{t('ocr.hint')}</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
@@ -105,9 +107,9 @@ export function OcrScreen({ route, navigation }: RootScreenProps<'Ocr'>) {
       </ScrollView>
 
       <View style={[styles.bar, { backgroundColor: theme.colors.surface, borderTopColor: theme.colors.border }]}>
-        <Button title="Copy" icon={Copy} variant="secondary" fullWidth={false} style={styles.flex1} onPress={copy} />
-        <Button title="Share" icon={Share2} variant="secondary" fullWidth={false} style={[styles.flex1, styles.gap]} onPress={() => shareText(text)} />
-        <Button title="Save PDF" icon={FileText} fullWidth={false} style={[styles.flex1, styles.gap]} onPress={saveAsPdf} />
+        <Button title={t('common.copy')} icon={Copy} variant="secondary" fullWidth={false} style={styles.flex1} onPress={copy} />
+        <Button title={t('common.share')} icon={Share2} variant="secondary" fullWidth={false} style={[styles.flex1, styles.gap]} onPress={() => shareText(text)} />
+        <Button title={t('ocr.savePdf')} icon={FileText} fullWidth={false} style={[styles.flex1, styles.gap]} onPress={saveAsPdf} />
       </View>
     </Screen>
   );

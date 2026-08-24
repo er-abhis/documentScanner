@@ -20,6 +20,7 @@ import { IconButton } from '../components/IconButton';
 import { Slider } from '../components/Slider';
 import { LoadingState } from '../components/LoadingState';
 import { sharePdf } from '../services/sharing';
+import { useT } from '../i18n';
 import { HIT_SLOP, useTheme } from '../theme';
 import type { RootScreenProps } from '../types/navigation';
 
@@ -30,6 +31,7 @@ type Fit = typeof FIT_WIDTH | typeof FIT_PAGE;
 
 export function PdfPreviewScreen({ route, navigation }: RootScreenProps<'PdfPreview'>) {
   const theme = useTheme();
+  const t = useT();
   const { uri, name, editable } = route.params;
   const pdfRef = useRef<React.ComponentRef<typeof Pdf>>(null);
   const [loading, setLoading] = useState(true);
@@ -63,9 +65,9 @@ export function PdfPreviewScreen({ route, navigation }: RootScreenProps<'PdfPrev
             right={
               <View style={styles.headActions}>
                 {editable && (
-                  <IconButton icon={Pen} onPress={openEditor} accessibilityLabel="Edit PDF" color={theme.colors.brand} />
+                  <IconButton icon={Pen} onPress={openEditor} accessibilityLabel={t('pdfPreview.editPdf')} color={theme.colors.brand} />
                 )}
-                <IconButton icon={Share2} onPress={() => sharePdf(uri, name)} accessibilityLabel="Share PDF" />
+                <IconButton icon={Share2} onPress={() => sharePdf(uri, name)} accessibilityLabel={t('pdfPreview.sharePdf')} />
               </View>
             }
           />
@@ -76,7 +78,7 @@ export function PdfPreviewScreen({ route, navigation }: RootScreenProps<'PdfPrev
         {error ? (
           <View style={styles.center}>
             <Text variant="body" color="textSecondary">
-              Couldn’t open this PDF.
+              {t('pdfPreview.openFail')}
             </Text>
           </View>
         ) : (
@@ -106,7 +108,7 @@ export function PdfPreviewScreen({ route, navigation }: RootScreenProps<'PdfPrev
 
             {loading && (
               <View style={styles.overlay}>
-                <LoadingState label="Opening PDF…" />
+                <LoadingState label={t('pdfPreview.opening')} />
               </View>
             )}
 
@@ -138,11 +140,11 @@ export function PdfPreviewScreen({ route, navigation }: RootScreenProps<'PdfPrev
               icon={ChevronLeft}
               onPress={() => jump(page - 1)}
               disabled={page <= 1}
-              accessibilityLabel="Previous page"
+              accessibilityLabel={t('pdfPreview.prevPage')}
             />
             <View style={styles.slider}>
               <Slider
-                label="Page"
+                label={t('pdfPreview.page')}
                 value={page}
                 min={1}
                 max={Math.max(total, 1)}
@@ -154,7 +156,7 @@ export function PdfPreviewScreen({ route, navigation }: RootScreenProps<'PdfPrev
               icon={ChevronRight}
               onPress={() => jump(page + 1)}
               disabled={page >= total}
-              accessibilityLabel="Next page"
+              accessibilityLabel={t('pdfPreview.nextPage')}
             />
           </View>
 
@@ -163,13 +165,13 @@ export function PdfPreviewScreen({ route, navigation }: RootScreenProps<'PdfPrev
               active={horizontal}
               onPress={() => setHorizontal(v => !v)}
               icon={horizontal ? Columns3 : Rows3}
-              label={horizontal ? 'Paged' : 'Scroll'}
+              label={horizontal ? t('pdfPreview.paged') : t('pdfPreview.scroll')}
             />
             <Toggle
               active={fit === FIT_PAGE}
               onPress={() => setFit(f => (f === FIT_WIDTH ? FIT_PAGE : FIT_WIDTH))}
               icon={fit === FIT_PAGE ? Minimize2 : Maximize2}
-              label={fit === FIT_PAGE ? 'Fit page' : 'Fit width'}
+              label={fit === FIT_PAGE ? t('pdfPreview.fitPage') : t('pdfPreview.fitWidth')}
             />
           </View>
         </Animated.View>

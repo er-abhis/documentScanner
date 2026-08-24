@@ -37,6 +37,7 @@ import {
   type FilterKey,
 } from '../services/image/filters';
 import { useTheme } from '../theme';
+import { useT } from '../i18n';
 import type { RootScreenProps } from '../types/navigation';
 
 type XY = { x: number; y: number };
@@ -53,6 +54,7 @@ function fit(natW: number, natH: number, boxW: number, boxH: number) {
 
 export function EditorScreen({ route, navigation }: RootScreenProps<'Editor'>) {
   const theme = useTheme();
+  const t = useT();
   const { uri, onDone } = route.params;
 
   const [nat, setNat] = useState<{ w: number; h: number } | null>(null);
@@ -135,14 +137,14 @@ export function EditorScreen({ route, navigation }: RootScreenProps<'Editor'>) {
       navigation.goBack();
     } catch {
       setBusy(false);
-      Alert.alert('Couldn’t apply changes', 'Please try again.');
+      Alert.alert(t('editor.applyFail'), t('editor.tryAgain'));
     }
   };
 
   if (busy) {
     return (
       <Screen center>
-        <LoadingState label="Enhancing scan…" />
+        <LoadingState label={t('editor.enhancing')} />
       </Screen>
     );
   }
@@ -150,7 +152,7 @@ export function EditorScreen({ route, navigation }: RootScreenProps<'Editor'>) {
   return (
     <Screen padded={false}>
       <View style={styles.headerPad}>
-        <Header title="Edit Page" onBack={() => navigation.goBack()} />
+        <Header title={t('editor.title')} onBack={() => navigation.goBack()} />
         <SegTabs mode={mode} onChange={setMode} />
       </View>
 
@@ -202,7 +204,7 @@ export function EditorScreen({ route, navigation }: RootScreenProps<'Editor'>) {
           <>
             <View style={styles.tools}>
               <Button
-                title="Rotate"
+                title={t('editor.rotate')}
                 icon={RotateCw}
                 variant="secondary"
                 fullWidth={false}
@@ -210,7 +212,7 @@ export function EditorScreen({ route, navigation }: RootScreenProps<'Editor'>) {
                 onPress={() => setRotation(r => (r + 90) % 360)}
               />
               <Button
-                title="Reset"
+                title={t('editor.reset')}
                 icon={RefreshCcw}
                 variant="secondary"
                 fullWidth={false}
@@ -219,7 +221,7 @@ export function EditorScreen({ route, navigation }: RootScreenProps<'Editor'>) {
               />
             </View>
             <Text variant="caption" color="textTertiary" style={styles.hint}>
-              Drag the corners to match the document edges.
+              {t('editor.cropHint')}
             </Text>
           </>
         ) : (
@@ -240,11 +242,11 @@ export function EditorScreen({ route, navigation }: RootScreenProps<'Editor'>) {
                 />
               ))}
             </ScrollView>
-            <Slider label="Brightness" value={brightness} onChange={setBrightness} />
-            <Slider label="Contrast" value={contrast} onChange={setContrast} />
+            <Slider label={t('editor.brightness')} value={brightness} onChange={setBrightness} />
+            <Slider label={t('editor.contrast')} value={contrast} onChange={setContrast} />
           </>
         )}
-        <Button title="Apply" icon={Check} onPress={confirm} />
+        <Button title={t('editor.apply')} icon={Check} onPress={confirm} />
       </View>
     </Screen>
   );
@@ -252,9 +254,10 @@ export function EditorScreen({ route, navigation }: RootScreenProps<'Editor'>) {
 
 function SegTabs({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => void }) {
   const theme = useTheme();
+  const t = useT();
   const tabs: { key: Mode; label: string; icon: typeof Crop }[] = [
-    { key: 'crop', label: 'Crop', icon: Crop },
-    { key: 'filter', label: 'Filters', icon: SlidersHorizontal },
+    { key: 'crop', label: t('editor.crop'), icon: Crop },
+    { key: 'filter', label: t('editor.filters'), icon: SlidersHorizontal },
   ];
   return (
     <View style={[styles.seg, { backgroundColor: theme.colors.surfaceSunken, borderRadius: theme.radius.md }]}>

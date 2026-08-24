@@ -37,24 +37,26 @@ import {
 } from '../services/collage/types';
 import type { ImgFormat } from '../services/image/encode';
 import { useTheme } from '../theme';
+import { useT } from '../i18n';
+import type { StringKey } from '../i18n/strings';
 import type { RootScreenProps } from '../types/navigation';
 
 type Panel = 'photos' | 'ratio' | 'background' | 'spacing' | 'style' | 'export';
 
 const BG_COLORS = ['#FFFFFF', '#111111', '#F2F2F7', '#0F172A', '#FDF2F8', '#052E2B', '#1E1B4B'];
-const RATIOS: { key: Ratio; label: string }[] = [
-  { key: '1:1', label: 'Square' },
-  { key: '4:5', label: 'Post' },
-  { key: '9:16', label: 'Story' },
-  { key: '3:4', label: 'Portrait' },
-  { key: '16:9', label: 'Landscape' },
-  { key: 'A4', label: 'A4' },
+const RATIO_KEYS: { key: Ratio; labelKey: string }[] = [
+  { key: '1:1', labelKey: 'collageEditor.ratioSquare' },
+  { key: '4:5', labelKey: 'collageEditor.ratioPost' },
+  { key: '9:16', labelKey: 'collageEditor.ratioStory' },
+  { key: '3:4', labelKey: 'collageEditor.ratioPortrait' },
+  { key: '16:9', labelKey: 'collageEditor.ratioLandscape' },
+  { key: 'A4', labelKey: 'collageEditor.ratioA4' },
 ];
-const STYLES: { key: FrameStyle; label: string }[] = [
-  { key: 'none', label: 'Clean' },
-  { key: 'white', label: 'White' },
-  { key: 'polaroid', label: 'Polaroid' },
-  { key: 'shadow', label: 'Shadow' },
+const STYLE_KEYS: { key: FrameStyle; labelKey: string }[] = [
+  { key: 'none', labelKey: 'collageEditor.styleClean' },
+  { key: 'white', labelKey: 'collageEditor.styleWhite' },
+  { key: 'polaroid', labelKey: 'collageEditor.stylePolaroid' },
+  { key: 'shadow', labelKey: 'collageEditor.styleShadow' },
 ];
 const FORMATS: { key: ImgFormat | 'pdf'; label: string }[] = [
   { key: 'jpg', label: 'JPG' },
@@ -65,6 +67,7 @@ const FORMATS: { key: ImgFormat | 'pdf'; label: string }[] = [
 
 export function CollageEditorScreen({ route, navigation }: RootScreenProps<'CollageEditor'>) {
   const theme = useTheme();
+  const t = useT();
   const template = templateById(route.params.templateId);
 
   const [project, setProject] = useState<CollageProject>(() => ({
@@ -107,9 +110,9 @@ export function CollageEditorScreen({ route, navigation }: RootScreenProps<'Coll
   if (!template) {
     return (
       <Screen>
-        <Header title="Collage" onBack={() => navigation.goBack()} />
+        <Header title={t('collageEditor.title')} onBack={() => navigation.goBack()} />
         <View style={styles.center}>
-          <Text color="textSecondary">This layout is unavailable.</Text>
+          <Text color="textSecondary">{t('collageEditor.unavailable')}</Text>
         </View>
       </Screen>
     );
@@ -156,7 +159,7 @@ export function CollageEditorScreen({ route, navigation }: RootScreenProps<'Coll
 
   const doExport = async (mode: 'save' | 'share') => {
     if (!hasPhotos) {
-      Alert.alert('Add a photo first', 'Tap a frame to add photos to your collage.');
+      Alert.alert(t('collageEditor.addPhotoTitle'), t('collageEditor.addPhotoMsg'));
       return;
     }
     setBusy(true);
@@ -179,22 +182,22 @@ export function CollageEditorScreen({ route, navigation }: RootScreenProps<'Coll
       }
     } catch {
       setBusy(false);
-      Alert.alert('Export failed', 'Please try again.');
+      Alert.alert(t('collageEditor.exportFailTitle'), t('collageEditor.exportFailMsg'));
     }
   };
 
   const back = () => {
     if (!hasPhotos) return navigation.goBack();
-    Alert.alert('Discard collage?', 'Your collage will be lost.', [
-      { text: 'Keep Editing', style: 'cancel' },
-      { text: 'Discard', style: 'destructive', onPress: () => navigation.goBack() },
+    Alert.alert(t('collageEditor.discardTitle'), t('collageEditor.discardMsg'), [
+      { text: t('collageEditor.keepEditing'), style: 'cancel' },
+      { text: t('collageEditor.discard'), style: 'destructive', onPress: () => navigation.goBack() },
     ]);
   };
 
   if (busy) {
     return (
       <Screen center>
-        <LoadingState label="Exporting…" />
+        <LoadingState label={t('collageEditor.exporting')} />
       </Screen>
     );
   }
@@ -205,9 +208,9 @@ export function CollageEditorScreen({ route, navigation }: RootScreenProps<'Coll
     <Screen padded={false}>
       <View style={styles.head}>
         <Header
-          title="Collage"
+          title={t('collageEditor.title')}
           onBack={back}
-          right={<IconButton icon={Images} onPress={fillEmpty} accessibilityLabel="Add photos" />}
+          right={<IconButton icon={Images} onPress={fillEmpty} accessibilityLabel={t('collageEditor.addPhotos')} />}
         />
       </View>
 
@@ -226,10 +229,10 @@ export function CollageEditorScreen({ route, navigation }: RootScreenProps<'Coll
       {/* selected-frame quick actions */}
       {selected && selFill?.uri && (
         <View style={styles.selBar}>
-          <MiniAction icon={Replace} label="Replace" onPress={() => assign(selected)} />
-          <MiniAction icon={Trash2} label="Remove" onPress={() => removePhoto(selected)} danger />
+          <MiniAction icon={Replace} label={t('collageEditor.replace')} onPress={() => assign(selected)} />
+          <MiniAction icon={Trash2} label={t('collageEditor.remove')} onPress={() => removePhoto(selected)} danger />
           <Text variant="caption" color="textTertiary" style={styles.hint}>
-            Drag / pinch to fit
+            {t('collageEditor.dragHint')}
           </Text>
         </View>
       )}
@@ -238,11 +241,11 @@ export function CollageEditorScreen({ route, navigation }: RootScreenProps<'Coll
       <View style={[styles.panel, { backgroundColor: theme.colors.surface, borderTopColor: theme.colors.border }]}>
         <View style={styles.panelBody}>
           {panel === 'photos' && (
-            <Button title="Add Photos to Empty Frames" icon={ImagePlus} onPress={fillEmpty} />
+            <Button title={t('collageEditor.addToEmpty')} icon={ImagePlus} onPress={fillEmpty} />
           )}
           {panel === 'ratio' && (
             <ChipRow
-              items={RATIOS.map(r => ({ key: r.key, label: r.label }))}
+              items={RATIO_KEYS.map(r => ({ key: r.key, label: t(r.labelKey as StringKey) }))}
               active={project.ratio}
               onPick={k => setProject(p => ({ ...p, ratio: k as Ratio }))}
             />
@@ -260,13 +263,13 @@ export function CollageEditorScreen({ route, navigation }: RootScreenProps<'Coll
           )}
           {panel === 'spacing' && (
             <>
-              <Slider label="Spacing" value={project.style.spacing} min={0} max={0.08} onChange={v => patchStyle({ spacing: v })} format={v => `${Math.round(v * 100)}`} />
-              <Slider label="Corner radius" value={project.style.cornerRadius} min={0} max={0.2} onChange={v => patchStyle({ cornerRadius: v })} format={v => `${Math.round(v * 100)}`} />
+              <Slider label={t('collageEditor.spacing')} value={project.style.spacing} min={0} max={0.08} onChange={v => patchStyle({ spacing: v })} format={v => `${Math.round(v * 100)}`} />
+              <Slider label={t('collageEditor.cornerRadius')} value={project.style.cornerRadius} min={0} max={0.2} onChange={v => patchStyle({ cornerRadius: v })} format={v => `${Math.round(v * 100)}`} />
             </>
           )}
           {panel === 'style' && (
             <ChipRow
-              items={STYLES.map(s => ({ key: s.key, label: s.label }))}
+              items={STYLE_KEYS.map(s => ({ key: s.key, label: t(s.labelKey as StringKey) }))}
               active={project.style.frameStyle}
               onPick={k => patchStyle({ frameStyle: k as FrameStyle })}
             />
@@ -275,8 +278,8 @@ export function CollageEditorScreen({ route, navigation }: RootScreenProps<'Coll
             <>
               <ChipRow items={FORMATS} active={format} onPick={k => setFormat(k as ImgFormat | 'pdf')} />
               <View style={styles.exportBtns}>
-                <Button title="Save" icon={Save} variant="secondary" fullWidth={false} style={styles.flex1} onPress={() => doExport('save')} />
-                <Button title="Share" icon={Share2} fullWidth={false} style={[styles.flex1, styles.gapL]} onPress={() => doExport('share')} />
+                <Button title={t('collageEditor.save')} icon={Save} variant="secondary" fullWidth={false} style={styles.flex1} onPress={() => doExport('save')} />
+                <Button title={t('collageEditor.share')} icon={Share2} fullWidth={false} style={[styles.flex1, styles.gapL]} onPress={() => doExport('share')} />
               </View>
             </>
           )}
@@ -284,12 +287,12 @@ export function CollageEditorScreen({ route, navigation }: RootScreenProps<'Coll
 
         {/* tool tabs */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
-          <Tab icon={Images} label="Photos" active={panel === 'photos'} onPress={() => setPanel('photos')} />
-          <Tab icon={RatioIcon} label="Ratio" active={panel === 'ratio'} onPress={() => setPanel('ratio')} />
-          <Tab icon={PaintBucket} label="Background" active={panel === 'background'} onPress={() => setPanel('background')} />
-          <Tab icon={Rows} label="Spacing" active={panel === 'spacing'} onPress={() => setPanel('spacing')} />
-          <Tab icon={FrameIcon} label="Style" active={panel === 'style'} onPress={() => setPanel('style')} />
-          <Tab icon={Share2} label="Export" active={panel === 'export'} onPress={() => setPanel('export')} />
+          <Tab icon={Images} label={t('collageEditor.tabPhotos')} active={panel === 'photos'} onPress={() => setPanel('photos')} />
+          <Tab icon={RatioIcon} label={t('collageEditor.tabRatio')} active={panel === 'ratio'} onPress={() => setPanel('ratio')} />
+          <Tab icon={PaintBucket} label={t('collageEditor.tabBackground')} active={panel === 'background'} onPress={() => setPanel('background')} />
+          <Tab icon={Rows} label={t('collageEditor.tabSpacing')} active={panel === 'spacing'} onPress={() => setPanel('spacing')} />
+          <Tab icon={FrameIcon} label={t('collageEditor.tabStyle')} active={panel === 'style'} onPress={() => setPanel('style')} />
+          <Tab icon={Share2} label={t('collageEditor.tabExport')} active={panel === 'export'} onPress={() => setPanel('export')} />
         </ScrollView>
       </View>
     </Screen>

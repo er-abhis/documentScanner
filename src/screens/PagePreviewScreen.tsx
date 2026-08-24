@@ -3,6 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { X } from 'lucide-react-native';
 import { Text } from '../components/Text';
 import { HIT_SLOP, useTheme } from '../theme';
+import { useI18n } from '../i18n';
 import type { RootScreenProps } from '../types/navigation';
 
 /** Full-screen page viewer, presented as a modal. */
@@ -11,19 +12,20 @@ export function PagePreviewScreen({
   navigation,
 }: RootScreenProps<'PagePreview'>) {
   const theme = useTheme();
+  const { t, lang } = useI18n();
   const { uri, index, total } = route.params;
   return (
     <View style={styles.backdrop}>
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.bar}>
           <Text variant="bodyStrong" style={styles.barText}>
-            Page {index + 1} of {total}
+            {lang === 'hi' ? `पेज ${index + 1} / ${total}` : `Page ${index + 1} of ${total}`}
           </Text>
           <Pressable
             onPress={() => navigation.goBack()}
             hitSlop={HIT_SLOP}
             accessibilityRole="button"
-            accessibilityLabel="Close preview"
+            accessibilityLabel={t('pagePreview.close')}
           >
             <X size={theme.iconSize.lg} color="#FFFFFF" />
           </Pressable>

@@ -7,22 +7,24 @@ import { Text } from '../components/Text';
 import { CollageThumb } from '../components/collage/CollageThumb';
 import { TEMPLATES, CATEGORIES } from '../services/collage/templates';
 import { useTheme } from '../theme';
+import { useT } from '../i18n';
 import type { RootScreenProps } from '../types/navigation';
 
 export function CollageStudioScreen({ navigation }: RootScreenProps<'CollageStudio'>) {
   const theme = useTheme();
+  const t = useT();
   const { width } = useWindowDimensions();
   const [cat, setCat] = useState('All');
 
-  const list = cat === 'All' ? TEMPLATES : TEMPLATES.filter(t => t.category === cat);
+  const list = cat === 'All' ? TEMPLATES : TEMPLATES.filter(tpl => tpl.category === cat);
   const colW = (width - 20 * 2 - 14) / 2; // 2 columns, 20 page pad, 14 gap
 
   return (
     <Screen padded={false}>
       <View style={styles.head}>
-        <Header title="Collage Studio" onBack={() => navigation.goBack()} />
+        <Header title={t('collage.title')} onBack={() => navigation.goBack()} />
         <Text variant="caption" color="textSecondary" style={styles.sub}>
-          Pick a layout, then fill it with your photos.
+          {t('collage.subtitle')}
         </Text>
       </View>
 
@@ -56,23 +58,23 @@ export function CollageStudioScreen({ navigation }: RootScreenProps<'CollageStud
       </View>
 
       <ScrollView contentContainerStyle={styles.grid} showsVerticalScrollIndicator={false}>
-        {list.map((t, i) => (
-          <Animated.View key={t.id} entering={FadeIn.delay(Math.min(i, 8) * 40)} style={{ width: colW }}>
+        {list.map((tpl, i) => (
+          <Animated.View key={tpl.id} entering={FadeIn.delay(Math.min(i, 8) * 40)} style={{ width: colW }}>
             <Pressable
-              onPress={() => navigation.navigate('CollageEditor', { templateId: t.id })}
+              onPress={() => navigation.navigate('CollageEditor', { templateId: tpl.id })}
               accessibilityRole="button"
-              accessibilityLabel={`${t.name} layout`}
+              accessibilityLabel={t('collage.layoutA11y').replace('{name}', tpl.name)}
               style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderRadius: theme.radius.lg }, theme.elevation(1)]}
             >
               <View style={[styles.thumbBox, { backgroundColor: theme.colors.surfaceSunken, borderRadius: theme.radius.md }]}>
-                <CollageThumb template={t} width={colW - 20} />
+                <CollageThumb template={tpl} width={colW - 20} />
               </View>
               <View style={styles.cardMeta}>
                 <Text variant="bodyStrong" numberOfLines={1}>
-                  {t.name}
+                  {tpl.name}
                 </Text>
                 <Text variant="caption" color="textTertiary">
-                  {t.category} · {t.ratio}
+                  {tpl.category} · {tpl.ratio}
                 </Text>
               </View>
             </Pressable>

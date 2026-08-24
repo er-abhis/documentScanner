@@ -17,11 +17,13 @@ import { IconButton } from '../components/IconButton';
 import { LoadingState } from '../components/LoadingState';
 import { saveDocument } from '../services/storage';
 import { useDraft, type DraftPage } from '../state/draft';
+import { useI18n, useT } from '../i18n';
 import { HIT_SLOP, useTheme } from '../theme';
 import type { RootScreenProps } from '../types/navigation';
 
 export function PagesScreen({ navigation }: RootScreenProps<'Pages'>) {
   const theme = useTheme();
+  const { t, lang } = useI18n();
   const { pages, setPages, removePage, replacePage, clear } = useDraft();
   const [saving, setSaving] = useState(false);
 
@@ -37,7 +39,7 @@ export function PagesScreen({ navigation }: RootScreenProps<'Pages'>) {
       });
     } catch {
       setSaving(false);
-      Alert.alert('Couldn’t save', 'Please try again.');
+      Alert.alert(t('pages.saveFailTitle'), t('pages.tryAgain'));
     }
   };
 
@@ -47,10 +49,10 @@ export function PagesScreen({ navigation }: RootScreenProps<'Pages'>) {
 
   const confirmRemove = (id: string) => {
     if (pages.length <= 1) {
-      Alert.alert('Remove the only page?', 'This will discard the document.', [
-        { text: 'Cancel', style: 'cancel' },
+      Alert.alert(t('pages.removeOnlyTitle'), t('pages.removeOnlyMsg'), [
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Discard',
+          text: t('pages.discard'),
           style: 'destructive',
           onPress: () => {
             removePage(id);
@@ -60,9 +62,9 @@ export function PagesScreen({ navigation }: RootScreenProps<'Pages'>) {
       ]);
       return;
     }
-    Alert.alert('Remove page?', 'This page will be discarded.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => removePage(id) },
+    Alert.alert(t('pages.removeTitle'), t('pages.removeMsg'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('pages.remove'), style: 'destructive', onPress: () => removePage(id) },
     ]);
   };
 
@@ -81,7 +83,7 @@ export function PagesScreen({ navigation }: RootScreenProps<'Pages'>) {
   if (saving) {
     return (
       <Screen center>
-        <LoadingState label="Saving document…" />
+        <LoadingState label={t('pages.savingDocument')} />
       </Screen>
     );
   }
@@ -89,11 +91,11 @@ export function PagesScreen({ navigation }: RootScreenProps<'Pages'>) {
   if (pages.length === 0) {
     return (
       <Screen>
-        <Header title="Pages" onBack={() => navigation.popToTop()} />
+        <Header title={t('pages.title')} onBack={() => navigation.popToTop()} />
         <EmptyState
           icon={FileText}
-          title="No pages"
-          subtitle="Scan a document to start building your file."
+          title={t('pages.noPages')}
+          subtitle={t('pages.emptySub')}
         />
       </Screen>
     );
@@ -102,9 +104,11 @@ export function PagesScreen({ navigation }: RootScreenProps<'Pages'>) {
   return (
     <Screen padded={false}>
       <View style={styles.headerPad}>
-        <Header title="Pages" onBack={() => navigation.popToTop()} />
+        <Header title={t('pages.title')} onBack={() => navigation.popToTop()} />
         <Text variant="caption" color="textSecondary" style={styles.count}>
-          {pages.length} page{pages.length === 1 ? '' : 's'} · hold the handle to reorder
+          {lang === 'hi'
+            ? `${pages.length} पेज · क्रम बदलने के लिए हैंडल दबाए रखें`
+            : `${pages.length} page${pages.length === 1 ? '' : 's'} · hold the handle to reorder`}
         </Text>
       </View>
 
@@ -133,12 +137,12 @@ export function PagesScreen({ navigation }: RootScreenProps<'Pages'>) {
 
       <View style={[styles.footer, { borderTopColor: theme.colors.border }]}>
         <Button
-          title="Add Page"
+          title={t('pages.addPage')}
           icon={Plus}
           variant="secondary"
           onPress={() => navigation.navigate('Scanner', { append: true })}
         />
-        <Button title="Save Document" onPress={save} style={styles.gap} />
+        <Button title={t('pages.saveDocument')} onPress={save} style={styles.gap} />
       </View>
     </Screen>
   );
@@ -160,6 +164,7 @@ function PageRow({
   onPreview: () => void;
 }) {
   const theme = useTheme();
+  const t = useT();
   const drag = useReorderableDrag();
   const active = useIsActive();
 
@@ -182,7 +187,7 @@ function PageRow({
           theme.elevation(active ? 3 : 1),
         ]}
       >
-        <Pressable onPress={onPreview} accessibilityLabel={`Preview page ${index + 1}`}>
+        <Pressable onPress={onPreview} accessibilityLabel={`${t('pages.a11yPreview')} ${index + 1}`}>
           <Image
             source={{ uri: page.uri }}
             style={[styles.thumb, { borderRadius: theme.radius.md }]}
@@ -192,18 +197,18 @@ function PageRow({
         </Pressable>
 
         <View style={styles.meta}>
-          <Text variant="bodyStrong">Page {index + 1}</Text>
+          <Text variant="bodyStrong">{`${t('pages.page')} ${index + 1}`}</Text>
           <View style={styles.links}>
             <Pressable onPress={onEdit} style={styles.editLink} hitSlop={HIT_SLOP}>
               <Crop size={14} color={theme.colors.brand} />
               <Text variant="callout" color="brand">
-                Edit
+                {t('common.edit')}
               </Text>
             </Pressable>
             <Pressable onPress={onDraw} style={styles.editLink} hitSlop={HIT_SLOP}>
               <Pen size={14} color={theme.colors.brand} />
               <Text variant="callout" color="brand">
-                Draw
+                {t('pages.draw')}
               </Text>
             </Pressable>
           </View>
@@ -212,14 +217,14 @@ function PageRow({
         <IconButton
           icon={Trash2}
           onPress={onRemove}
-          accessibilityLabel={`Remove page ${index + 1}`}
+          accessibilityLabel={`${t('pages.a11yRemove')} ${index + 1}`}
           color={theme.colors.danger}
         />
         <Pressable
           onLongPress={drag}
           delayLongPress={120}
           hitSlop={HIT_SLOP}
-          accessibilityLabel={`Drag to reorder page ${index + 1}`}
+          accessibilityLabel={`${t('pages.a11yDrag')} ${index + 1}`}
           style={styles.handle}
         >
           <GripVertical size={theme.iconSize.md} color={theme.colors.textTertiary} />

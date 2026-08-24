@@ -17,19 +17,21 @@ import { AnnotationCanvas, type CanvasTool } from '../components/annotate/Annota
 import { flattenAnnotations } from '../services/annotate/flatten';
 import { PEN_COLORS, HIGHLIGHT_COLORS, type Annotation, type Pt } from '../services/annotate/types';
 import { listDocuments, pageUris, saveDocument, generateDocumentPdf, type DocumentMeta } from '../services/storage';
+import { useT } from '../i18n';
 import { HIT_SLOP, useTheme } from '../theme';
 import type { RootScreenProps } from '../types/navigation';
 
 const HISTORY_MAX = 50;
-const SHAPE_TOOLS: { key: CanvasTool; icon: LucideIcon; label: string }[] = [
-  { key: 'rect', icon: Square, label: 'Box' },
-  { key: 'oval', icon: Circle, label: 'Circle' },
-  { key: 'line', icon: Minus, label: 'Line' },
-  { key: 'arrow', icon: MoveUpRight, label: 'Arrow' },
+const SHAPE_TOOLS: { key: CanvasTool; icon: LucideIcon; labelKey: string }[] = [
+  { key: 'rect', icon: Square, labelKey: 'pdfEditor.box' },
+  { key: 'oval', icon: Circle, labelKey: 'pdfEditor.circle' },
+  { key: 'line', icon: Minus, labelKey: 'pdfEditor.line' },
+  { key: 'arrow', icon: MoveUpRight, labelKey: 'pdfEditor.arrow' },
 ];
 
 export function PdfEditorScreen({ route, navigation }: RootScreenProps<'PdfEditor'>) {
   const theme = useTheme();
+  const t = useT();
   const params = route.params;
   const byId = 'id' in params;
 
@@ -71,7 +73,7 @@ export function PdfEditorScreen({ route, navigation }: RootScreenProps<'PdfEdito
     }, [byId, byId ? params.id : null]),
   );
 
-  const docName = byId ? doc?.name ?? 'Document' : params.name;
+  const docName = byId ? doc?.name ?? t('pdfEditor.document') : params.name;
   const anns = byPage[page] ?? [];
   const dirty = Object.values(byPage).some(a => a.length > 0) || Object.keys(past.current).length > 0;
 
@@ -117,8 +119,8 @@ export function PdfEditorScreen({ route, navigation }: RootScreenProps<'PdfEdito
   // text
   const placeText = (pt: Pt) => setTextModal({ mode: 'new', pt });
   const selectText = (id: string) => {
-    const t = anns.find(a => a.id === id);
-    if (t && t.kind === 'text') setTextModal({ mode: 'edit', id, initial: t.text });
+    const target = anns.find(a => a.id === id);
+    if (target && target.kind === 'text') setTextModal({ mode: 'edit', id, initial: target.text });
   };
   const moveText = (id: string, pt: Pt) =>
     setByPage(prev => ({ ...prev, [page]: (prev[page] ?? []).map(a => (a.id === id && a.kind === 'text' ? { ...a, x: pt.x, y: pt.y } : a)) }));
@@ -149,22 +151,22 @@ export function PdfEditorScreen({ route, navigation }: RootScreenProps<'PdfEdito
       navigation.reset({ index: 0, routes: [{ name: 'Tabs', state: { index: 1, routes: [{ name: 'Home' }, { name: 'Documents' }] } }] });
     } catch {
       setSaving(false);
-      Alert.alert('Couldn’t save', 'Please try again.');
+      Alert.alert(t('pdfEditor.saveFail'), t('pdfEditor.tryAgain'));
     }
   };
 
   const back = () => {
     if (!dirty) return navigation.goBack();
-    Alert.alert('Discard changes?', 'Your edits will be lost.', [
-      { text: 'Keep Editing', style: 'cancel' },
-      { text: 'Discard', style: 'destructive', onPress: () => navigation.goBack() },
+    Alert.alert(t('pdfEditor.discardTitle'), t('pdfEditor.discardMsg'), [
+      { text: t('pdfEditor.keepEditing'), style: 'cancel' },
+      { text: t('pdfEditor.discard'), style: 'destructive', onPress: () => navigation.goBack() },
     ]);
   };
 
   if (loading) return (<Screen center><LoadingState /></Screen>);
-  if (saving) return (<Screen center><LoadingState label="Saving a copy…" /></Screen>);
+  if (saving) return (<Screen center><LoadingState label={t('pdfEditor.savingCopy')} /></Screen>);
   if (uris.length === 0) {
-    return (<Screen><Header title="Edit PDF" onBack={() => navigation.goBack()} /><View style={styles.center}><Text color="textSecondary">This document is unavailable.</Text></View></Screen>);
+    return (<Screen><Header title={t('pdfEditor.editPdf')} onBack={() => navigation.goBack()} /><View style={styles.center}><Text color="textSecondary">{t('pdfEditor.unavailable')}</Text></View></Screen>);
   }
 
   const editing = tool !== 'view';
@@ -182,7 +184,7 @@ export function PdfEditorScreen({ route, navigation }: RootScreenProps<'PdfEdito
   return (
     <Screen padded={false}>
       <View style={styles.head}>
-        <Header title={editing ? 'Edit PDF' : docName} onBack={back} right={<IconButton icon={Check} onPress={saveCopy} accessibilityLabel="Save copy" color={theme.colors.brand} />} />
+        <Header title={editing ? t('pdfEditor.editPdf') : docName} onBack={back} right={<IconButton icon={Check} onPress={saveCopy} accessibilityLabel={t('pdfEditor.saveCopy')} color={theme.colors.brand} />} />
       </View>
 
       <View style={[styles.canvas, { backgroundColor: theme.colors.surfaceSunken }]}>
@@ -203,44 +205,44 @@ export function PdfEditorScreen({ route, navigation }: RootScreenProps<'PdfEdito
       </View>
 
       <View style={styles.pageNav}>
-        <IconButton icon={ChevronLeft} onPress={() => setPage(p => Math.max(0, p - 1))} disabled={page <= 0} accessibilityLabel="Previous page" />
-        <Text variant="callout" color="textSecondary">Page {page + 1} / {uris.length}{isText ? ' · tap to add text' : ''}</Text>
-        <IconButton icon={ChevronRight} onPress={() => setPage(p => Math.min(uris.length - 1, p + 1))} disabled={page >= uris.length - 1} accessibilityLabel="Next page" />
+        <IconButton icon={ChevronLeft} onPress={() => setPage(p => Math.max(0, p - 1))} disabled={page <= 0} accessibilityLabel={t('pdfEditor.prevPage')} />
+        <Text variant="callout" color="textSecondary">{t('pdfEditor.page')} {page + 1} / {uris.length}{isText ? ` · ${t('pdfEditor.tapToAddText')}` : ''}</Text>
+        <IconButton icon={ChevronRight} onPress={() => setPage(p => Math.min(uris.length - 1, p + 1))} disabled={page >= uris.length - 1} accessibilityLabel={t('pdfEditor.nextPage')} />
       </View>
 
       <View style={[styles.bar, { backgroundColor: theme.colors.surface, borderTopColor: theme.colors.border }]}>
         {showColors && (
           <View style={styles.colors}>
             {colors.map(c => (
-              <Pressable key={c} onPress={() => setColor(c)} hitSlop={HIT_SLOP} accessibilityLabel={`Color ${c}`}
+              <Pressable key={c} onPress={() => setColor(c)} hitSlop={HIT_SLOP} accessibilityLabel={`${t('pdfEditor.color')} ${c}`}
                 style={[styles.swatch, { backgroundColor: c, borderColor: color === c ? theme.colors.brand : theme.colors.border, borderWidth: color === c ? 3 : StyleSheet.hairlineWidth }]} />
             ))}
           </View>
         )}
         {editing && (
           <View style={styles.sliderWrap}>
-            <Slider label={tool === 'erase' ? 'Eraser' : isText ? 'Text size' : 'Size'} value={size} min={tool === 'text' ? 16 : 2} max={tool === 'text' ? 96 : 40} onChange={v => setSize(Math.round(v))} format={v => `${Math.round(v)}`} />
+            <Slider label={tool === 'erase' ? t('pdfEditor.eraser') : isText ? t('pdfEditor.textSize') : t('pdfEditor.size')} value={size} min={tool === 'text' ? 16 : 2} max={tool === 'text' ? 96 : 40} onChange={v => setSize(Math.round(v))} format={v => `${Math.round(v)}`} />
           </View>
         )}
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tools}>
-          <ToolBtn active={tool === 'view'} icon={Eye} label="View" onPress={() => setTool('view')} />
-          <ToolBtn active={isText} icon={Type} label="Text" onPress={() => setTool('text')} />
-          <ToolBtn active={tool === 'pen'} icon={Pen} label="Pen" onPress={() => setTool('pen')} />
-          <ToolBtn active={isHi} icon={Highlighter} label="Marker" onPress={() => setTool('highlight')} />
+          <ToolBtn active={tool === 'view'} icon={Eye} label={t('pdfEditor.view')} onPress={() => setTool('view')} />
+          <ToolBtn active={isText} icon={Type} label={t('pdfEditor.text')} onPress={() => setTool('text')} />
+          <ToolBtn active={tool === 'pen'} icon={Pen} label={t('pdfEditor.pen')} onPress={() => setTool('pen')} />
+          <ToolBtn active={isHi} icon={Highlighter} label={t('pdfEditor.marker')} onPress={() => setTool('highlight')} />
           {SHAPE_TOOLS.map(s => (
-            <ToolBtn key={s.key} active={tool === s.key} icon={s.icon} label={s.label} onPress={() => setTool(s.key)} />
+            <ToolBtn key={s.key} active={tool === s.key} icon={s.icon} label={t(s.labelKey as Parameters<typeof t>[0])} onPress={() => setTool(s.key)} />
           ))}
-          <ToolBtn active={tool === 'erase'} icon={Eraser} label="Erase" onPress={() => setTool('erase')} />
+          <ToolBtn active={tool === 'erase'} icon={Eraser} label={t('pdfEditor.erase')} onPress={() => setTool('erase')} />
           <View style={styles.divider} />
-          <ToolBtn active={false} icon={Undo2} label="Undo" onPress={undo} dim={!(past.current[page]?.length)} />
-          <ToolBtn active={false} icon={Redo2} label="Redo" onPress={redo} dim={!(future.current[page]?.length)} />
+          <ToolBtn active={false} icon={Undo2} label={t('pdfEditor.undo')} onPress={undo} dim={!(past.current[page]?.length)} />
+          <ToolBtn active={false} icon={Redo2} label={t('pdfEditor.redo')} onPress={redo} dim={!(future.current[page]?.length)} />
         </ScrollView>
       </View>
 
       <TextInputModal
         visible={!!textModal}
-        title={textModal?.mode === 'edit' ? 'Edit text' : 'Add text'}
+        title={textModal?.mode === 'edit' ? t('pdfEditor.editText') : t('pdfEditor.addText')}
         initial={textModal?.mode === 'edit' ? textModal.initial : ''}
         onSubmit={submitText}
         onDelete={textModal?.mode === 'edit' ? deleteText : undefined}

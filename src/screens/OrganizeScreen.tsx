@@ -17,6 +17,7 @@ import { IconButton } from '../components/IconButton';
 import { EmptyState } from '../components/EmptyState';
 import { LoadingState } from '../components/LoadingState';
 import { listDocuments, pageUris, reorganizeDocument, type DocumentMeta } from '../services/storage';
+import { useI18n, useT } from '../i18n';
 import { HIT_SLOP, useTheme } from '../theme';
 import type { RootScreenProps } from '../types/navigation';
 
@@ -24,6 +25,7 @@ type PageItem = { key: string; file: string; uri: string; rotation: number };
 
 export function OrganizeScreen({ route, navigation }: RootScreenProps<'Organize'>) {
   const theme = useTheme();
+  const { t, lang } = useI18n();
   const { id } = route.params;
   const [pages, setPages] = useState<PageItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,13 +83,13 @@ export function OrganizeScreen({ route, navigation }: RootScreenProps<'Organize'
 
   const remove = (key: string) => {
     if (pages.length <= 1) {
-      Alert.alert('Can’t remove', 'A document needs at least one page.');
+      Alert.alert(t('organize.cantRemoveTitle'), t('organize.cantRemoveMsg'));
       return;
     }
-    Alert.alert('Remove page?', 'This page will be removed from the document.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('organize.removeTitle'), t('organize.removeMsg'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Remove',
+        text: t('organize.remove'),
         style: 'destructive',
         onPress: () => {
           setPages(p => p.filter(i => i.key !== key));
@@ -107,15 +109,15 @@ export function OrganizeScreen({ route, navigation }: RootScreenProps<'Organize'
       navigation.goBack();
     } catch {
       setSaving(false);
-      Alert.alert('Couldn’t save', 'Please try again.');
+      Alert.alert(t('organize.saveFailTitle'), t('organize.tryAgain'));
     }
   };
 
   const confirmBack = () => {
     if (!dirty.current) return navigation.goBack();
-    Alert.alert('Discard changes?', 'Your page changes will be lost.', [
-      { text: 'Keep Editing', style: 'cancel' },
-      { text: 'Discard', style: 'destructive', onPress: () => navigation.goBack() },
+    Alert.alert(t('organize.discardTitle'), t('organize.discardMsg'), [
+      { text: t('organize.keepEditing'), style: 'cancel' },
+      { text: t('organize.discard'), style: 'destructive', onPress: () => navigation.goBack() },
     ]);
   };
 
@@ -129,15 +131,15 @@ export function OrganizeScreen({ route, navigation }: RootScreenProps<'Organize'
   if (saving) {
     return (
       <Screen center>
-        <LoadingState label="Saving pages…" />
+        <LoadingState label={t('organize.savingPages')} />
       </Screen>
     );
   }
   if (pages.length === 0) {
     return (
       <Screen>
-        <Header title="Organize" onBack={() => navigation.goBack()} />
-        <EmptyState icon={FileText} title="No pages" />
+        <Header title={t('organize.title')} onBack={() => navigation.goBack()} />
+        <EmptyState icon={FileText} title={t('organize.noPages')} />
       </Screen>
     );
   }
@@ -145,9 +147,11 @@ export function OrganizeScreen({ route, navigation }: RootScreenProps<'Organize'
   return (
     <Screen padded={false}>
       <View style={styles.headerPad}>
-        <Header title="Organize Pages" onBack={confirmBack} />
+        <Header title={t('organize.titlePages')} onBack={confirmBack} />
         <Text variant="caption" color="textSecondary" style={styles.count}>
-          {pages.length} page{pages.length === 1 ? '' : 's'} · hold the handle to reorder
+          {lang === 'hi'
+            ? `${pages.length} पेज · क्रम बदलने के लिए हैंडल दबाए रखें`
+            : `${pages.length} page${pages.length === 1 ? '' : 's'} · hold the handle to reorder`}
         </Text>
       </View>
 
@@ -168,7 +172,7 @@ export function OrganizeScreen({ route, navigation }: RootScreenProps<'Organize'
       />
 
       <View style={[styles.footer, { borderTopColor: theme.colors.border }]}>
-        <Button title="Save Changes" icon={FileText} onPress={save} />
+        <Button title={t('organize.saveChanges')} icon={FileText} onPress={save} />
       </View>
     </Screen>
   );
@@ -188,6 +192,7 @@ function PageRow({
   onRemove: () => void;
 }) {
   const theme = useTheme();
+  const t = useT();
   const drag = useReorderableDrag();
   const active = useIsActive();
   const style = useAnimatedStyle(() => ({
@@ -222,14 +227,14 @@ function PageRow({
         </View>
 
         <View style={styles.meta}>
-          <Text variant="bodyStrong">Page {index + 1}</Text>
+          <Text variant="bodyStrong">{`${t('organize.page')} ${index + 1}`}</Text>
           <View style={styles.actions}>
-            <IconButton icon={RotateCw} onPress={onRotate} accessibilityLabel={`Rotate page ${index + 1}`} />
-            <IconButton icon={Copy} onPress={onDuplicate} accessibilityLabel={`Duplicate page ${index + 1}`} />
+            <IconButton icon={RotateCw} onPress={onRotate} accessibilityLabel={`${t('organize.a11yRotate')} ${index + 1}`} />
+            <IconButton icon={Copy} onPress={onDuplicate} accessibilityLabel={`${t('organize.a11yDuplicate')} ${index + 1}`} />
             <IconButton
               icon={Trash2}
               onPress={onRemove}
-              accessibilityLabel={`Remove page ${index + 1}`}
+              accessibilityLabel={`${t('organize.a11yRemove')} ${index + 1}`}
               color={theme.colors.danger}
             />
           </View>
@@ -239,7 +244,7 @@ function PageRow({
           onLongPress={drag}
           delayLongPress={120}
           hitSlop={HIT_SLOP}
-          accessibilityLabel={`Drag to reorder page ${index + 1}`}
+          accessibilityLabel={`${t('organize.a11yDrag')} ${index + 1}`}
           style={styles.handle}
         >
           <GripVertical size={theme.iconSize.md} color={theme.colors.textTertiary} />
