@@ -20,6 +20,7 @@ import { IconButton } from '../components/IconButton';
 import { Slider } from '../components/Slider';
 import { LoadingState } from '../components/LoadingState';
 import { sharePdf } from '../services/sharing';
+import { useDeferredMount } from '../hooks/useDeferredMount';
 import { useT } from '../i18n';
 import { HIT_SLOP, useTheme } from '../theme';
 import type { RootScreenProps } from '../types/navigation';
@@ -33,6 +34,8 @@ export function PdfPreviewScreen({ route, navigation }: RootScreenProps<'PdfPrev
   const theme = useTheme();
   const t = useT();
   const { uri, name, editable } = route.params;
+  // Mount the native PDF view only after the push animation completes.
+  const ready = useDeferredMount();
   const pdfRef = useRef<React.ComponentRef<typeof Pdf>>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -83,6 +86,7 @@ export function PdfPreviewScreen({ route, navigation }: RootScreenProps<'PdfPrev
           </View>
         ) : (
           <>
+            {ready && (
             <Pdf
               ref={pdfRef}
               source={{ uri, cache: true }}
@@ -105,8 +109,9 @@ export function PdfPreviewScreen({ route, navigation }: RootScreenProps<'PdfPrev
                 setError(true);
               }}
             />
+            )}
 
-            {loading && (
+            {(!ready || loading) && (
               <View style={styles.overlay}>
                 <LoadingState label={t('pdfPreview.opening')} />
               </View>

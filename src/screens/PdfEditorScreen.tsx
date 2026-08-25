@@ -17,6 +17,7 @@ import { AnnotationCanvas, type CanvasTool } from '../components/annotate/Annota
 import { flattenAnnotations } from '../services/annotate/flatten';
 import { PEN_COLORS, HIGHLIGHT_COLORS, type Annotation, type Pt } from '../services/annotate/types';
 import { listDocuments, pageUris, saveDocument, generateDocumentPdf, type DocumentMeta } from '../services/storage';
+import { useDeferredMount } from '../hooks/useDeferredMount';
 import { useT } from '../i18n';
 import { HIT_SLOP, useTheme } from '../theme';
 import type { RootScreenProps } from '../types/navigation';
@@ -32,6 +33,8 @@ const SHAPE_TOOLS: { key: CanvasTool; icon: LucideIcon; labelKey: string }[] = [
 export function PdfEditorScreen({ route, navigation }: RootScreenProps<'PdfEditor'>) {
   const theme = useTheme();
   const t = useT();
+  // Defer the Skia annotation canvas until the push animation completes.
+  const ready = useDeferredMount();
   const params = route.params;
   const byId = 'id' in params;
 
@@ -163,7 +166,7 @@ export function PdfEditorScreen({ route, navigation }: RootScreenProps<'PdfEdito
     ]);
   };
 
-  if (loading) return (<Screen center><LoadingState /></Screen>);
+  if (loading || !ready) return (<Screen center><LoadingState /></Screen>);
   if (saving) return (<Screen center><LoadingState label={t('pdfEditor.savingCopy')} /></Screen>);
   if (uris.length === 0) {
     return (<Screen><Header title={t('pdfEditor.editPdf')} onBack={() => navigation.goBack()} /><View style={styles.center}><Text color="textSecondary">{t('pdfEditor.unavailable')}</Text></View></Screen>);

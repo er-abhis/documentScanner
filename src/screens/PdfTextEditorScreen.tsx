@@ -16,6 +16,7 @@ import { applyTextEdits, type PdfTextEdit } from '../services/pdf/textEdit';
 import { savePdfDocument } from '../services/storage';
 import { rasterizePdf } from '../services/pdf/raster';
 import { PEN_COLORS } from '../services/annotate/types';
+import { useDeferredMount } from '../hooks/useDeferredMount';
 import { useT } from '../i18n';
 import { HIT_SLOP, useTheme } from '../theme';
 import type { RootScreenProps } from '../types/navigation';
@@ -28,6 +29,8 @@ type SelMeta = {
 export function PdfTextEditorScreen({ route, navigation }: RootScreenProps<'PdfTextEditor'>) {
   const theme = useTheme();
   const t = useT();
+  // Mount the pdf.js WebView only after the push animation completes.
+  const ready = useDeferredMount();
   const { uri, name } = route.params;
   const webRef = useRef<any>(null);
   const b64 = useRef<string | null>(null);
@@ -127,20 +130,22 @@ export function PdfTextEditorScreen({ route, navigation }: RootScreenProps<'PdfT
       </View>
 
       <View style={styles.body}>
-        <RNWebView
-          ref={webRef}
-          source={{ uri: 'file:///android_asset/pdfjs/editor.html' }}
-          originWhitelist={['*']}
-          javaScriptEnabled
-          domStorageEnabled
-          allowFileAccess
-          allowFileAccessFromFileURLs
-          allowUniversalAccessFromFileURLs
-          onMessage={onMessage}
-          style={{ backgroundColor: theme.colors.surfaceSunken }}
-        />
-        {loading && !scanned && (
-          <View style={styles.overlay}><LoadingState label="Opening PDF…" /></View>
+        {ready && (
+          <RNWebView
+            ref={webRef}
+            source={{ uri: 'file:///android_asset/pdfjs/editor.html' }}
+            originWhitelist={['*']}
+            javaScriptEnabled
+            domStorageEnabled
+            allowFileAccess
+            allowFileAccessFromFileURLs
+            allowUniversalAccessFromFileURLs
+            onMessage={onMessage}
+            style={{ backgroundColor: theme.colors.surfaceSunken }}
+          />
+        )}
+        {(!ready || (loading && !scanned)) && (
+          <View style={styles.overlay}><LoadingState label={t('pdfPreview.opening')} /></View>
         )}
         {scanned && (
           <View style={[styles.overlay, { backgroundColor: theme.colors.background }]}>

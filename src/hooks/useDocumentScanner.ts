@@ -24,11 +24,13 @@ export function useDocumentScanner() {
       }
       setState({ status: 'success', pages: result.pages });
       return result;
-    } catch {
+    } catch (e: any) {
+      // Surface the real native error — the generic message hid R8-stripped
+      // ML Kit classes and Play Services module-download failures.
+      console.warn('Document scan failed:', e);
       setState({
         status: 'error',
-        message:
-          'Something went wrong while scanning. Please make sure Google Play services is up to date and try again.',
+        message: e?.message || String(e),
       });
       return { status: 'cancel' as const, pages: [] };
     }

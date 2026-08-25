@@ -5,7 +5,9 @@ import { Screen } from '../components/Screen';
 import { Header } from '../components/Header';
 import { Text } from '../components/Text';
 import { CollageThumb } from '../components/collage/CollageThumb';
+import { LoadingState } from '../components/LoadingState';
 import { TEMPLATES, CATEGORIES } from '../services/collage/templates';
+import { useDeferredMount } from '../hooks/useDeferredMount';
 import { useTheme } from '../theme';
 import { useT } from '../i18n';
 import type { RootScreenProps } from '../types/navigation';
@@ -15,6 +17,8 @@ export function CollageStudioScreen({ navigation }: RootScreenProps<'CollageStud
   const t = useT();
   const { width } = useWindowDimensions();
   const [cat, setCat] = useState('All');
+  // Defer the Skia thumbnail grid until the push animation completes.
+  const ready = useDeferredMount();
 
   const list = cat === 'All' ? TEMPLATES : TEMPLATES.filter(tpl => tpl.category === cat);
   const colW = (width - 20 * 2 - 14) / 2; // 2 columns, 20 page pad, 14 gap
@@ -57,6 +61,9 @@ export function CollageStudioScreen({ navigation }: RootScreenProps<'CollageStud
         </ScrollView>
       </View>
 
+      {!ready ? (
+        <View style={styles.loading}><LoadingState /></View>
+      ) : (
       <ScrollView contentContainerStyle={styles.grid} showsVerticalScrollIndicator={false}>
         {list.map((tpl, i) => (
           <Animated.View key={tpl.id} entering={FadeIn.delay(Math.min(i, 8) * 40)} style={{ width: colW }}>
@@ -81,6 +88,7 @@ export function CollageStudioScreen({ navigation }: RootScreenProps<'CollageStud
           </Animated.View>
         ))}
       </ScrollView>
+      )}
     </Screen>
   );
 }
@@ -98,6 +106,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: StyleSheet.hairlineWidth,
   },
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   grid: { paddingHorizontal: 20, paddingBottom: 24, flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
   card: { padding: 10, borderWidth: StyleSheet.hairlineWidth },
   thumbBox: { alignItems: 'center', justifyContent: 'center', padding: 10, overflow: 'hidden' },

@@ -25,5 +25,12 @@
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
       </activity>
+
+      <!-- Ask Play Services to install the ML Kit document-scanner module at app
+           install time, so the first scan doesn't fail waiting on a lazy
+           download ("make sure Google Play services is up to date"). -->
+      <meta-data
+        android:name="com.google.mlkit.vision.DEPENDENCIES"
+        android:value="docscanner" />
     </application>
 </manifest>
