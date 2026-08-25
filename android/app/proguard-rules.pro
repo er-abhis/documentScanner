@@ -35,3 +35,21 @@
   @com.google.firebase.components.annotations.KeepForSdk *;
 }
 -keepnames class com.google.android.gms.common.annotation.KeepName
+
+# --- On-demand optional-module delivery (the actual release-only failure) ---
+# The doc-scanner ships as a Google Play Services optional module that is
+# resolved AT RUNTIME via AndroidManifest <meta-data> + reflection over dynamite
+# "descriptor" classes. The rules above keep the ML Kit *API* surface but not
+# the *delivery* plumbing, so R8 full-mode + resource shrinking drop the
+# descriptors and the module resolves as UNAVAILABLE — surfacing the generic
+# "make sure Google Play services is up to date" MlKitException. Keep them.
+-keep class com.google.android.gms.dynamite.descriptors.** { *; }
+-keep class com.google.android.gms.internal.mlkit_vision_** { *; }
+
+# Standalone (non-Firebase) ML Kit keeps SDK entry points via THIS annotation,
+# which the Firebase rule above does not cover.
+-keep @interface com.google.android.gms.common.annotation.KeepForSdk
+-keep @com.google.android.gms.common.annotation.KeepForSdk class * { *; }
+-keepclassmembers class ** {
+  @com.google.android.gms.common.annotation.KeepForSdk *;
+}
