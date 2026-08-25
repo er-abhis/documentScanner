@@ -19,8 +19,18 @@
 -keep class com.documentscanner.** { *; }
 -dontwarn com.google.mlkit.**
 
+# Keep ML Kit Text Recognition package
+-keep class com.rnmlkit.textrecognition.** { *; }
+
+# Google Play Services and Tasks
+-keep class com.google.android.gms.common.** { *; }
+-keep class com.google.android.gms.tasks.** { *; }
+-keep class com.google.android.gms.vision.** { *; }
+-dontwarn com.google.android.gms.**
+
 # ML Kit registers detectors/options via reflection over annotated components.
 -keep class * implements com.google.mlkit.common.sdkinternal.OptionalModuleApi { *; }
+-keep class * implements com.google.android.gms.common.api.OptionalModuleApi { *; }
 -keepclassmembers class ** {
   @com.google.firebase.components.annotations.KeepForSdk *;
 }
