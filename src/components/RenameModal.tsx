@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
+import LinearGradient from 'react-native-linear-gradient';
 import { Text } from './Text';
 import { Button } from './Button';
 import { useTheme } from '../theme';
@@ -32,8 +33,15 @@ export function RenameModal({ visible, initial, title = 'Rename', onCancel, onSu
         <Pressable style={[styles.backdrop, { backgroundColor: theme.colors.overlay }]} onPress={onCancel}>
           <Animated.View entering={ZoomIn.springify().damping(18).stiffness(200)} style={styles.cardWrap}>
           <Pressable
-            style={[styles.card, { backgroundColor: theme.colors.surface, borderRadius: theme.radius.lg }, theme.elevation(3)]}
+            style={[styles.card, { backgroundColor: theme.colors.surface, borderRadius: theme.radius.lg, borderWidth: theme.mode === 'dark' ? StyleSheet.hairlineWidth : 0, borderColor: theme.colors.border }, theme.elevation(3)]}
           >
+            <LinearGradient
+              colors={theme.mode === 'dark' ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0)'] : ['rgba(255,255,255,0.9)', 'rgba(255,255,255,0)']}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={styles.gloss}
+              pointerEvents="none"
+            />
             <Text variant="title" style={styles.title}>
               {title}
             </Text>
@@ -72,7 +80,8 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   backdrop: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   cardWrap: { width: '100%', maxWidth: 400 },
-  card: { width: '100%', padding: 20 },
+  card: { width: '100%', padding: 20, overflow: 'hidden' },
+  gloss: { position: 'absolute', top: 0, left: 0, right: 0, height: 80 },
   title: { marginBottom: 14 },
   input: { borderWidth: 1, paddingHorizontal: 12, height: 46, marginBottom: 16 },
   row: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12 },

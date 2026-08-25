@@ -11,6 +11,7 @@ import { ThemeProvider } from './src/theme/ThemeProvider';
 import { I18nProvider } from './src/i18n';
 import { Splash } from './src/components/Splash';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
+import { ToastProvider } from './src/components/Toast';
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -20,10 +21,12 @@ function App() {
         <ThemeProvider>
           <I18nProvider>
             <SafeAreaProvider>
-              <DraftProvider>
-                <RootNavigator />
-              </DraftProvider>
-              {showSplash && <Splash onDone={() => setShowSplash(false)} />}
+              <ToastProvider>
+                <DraftProvider>
+                  <RootNavigator />
+                </DraftProvider>
+                {showSplash && <Splash onDone={() => setShowSplash(false)} />}
+              </ToastProvider>
             </SafeAreaProvider>
           </I18nProvider>
         </ThemeProvider>

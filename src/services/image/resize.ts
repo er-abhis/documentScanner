@@ -1,5 +1,5 @@
 import { Skia } from '@shopify/react-native-skia';
-import { encodeImageToFile, type ImgFormat } from './encode';
+import { encodeImage, type EncodeResult, type ImgFormat } from './encode';
 
 export type ResizeRatio = 'original' | '1:1' | '4:3' | '3:4' | '16:9' | '9:16';
 
@@ -12,7 +12,7 @@ const RATIO_AR: Record<Exclude<ResizeRatio, 'original'>, number> = {
 };
 
 export type ProcessOptions = {
-  /** 0.1–1 scale of the (optionally ratio-cropped) image; not upscaled past 1 */
+  /** 0.05–1 scale of the (optionally ratio-cropped) image; never upscaled past 1 */
   scale?: number;
   ratio?: ResizeRatio;
   format?: ImgFormat;
@@ -23,28 +23,51 @@ export type ProcessOptions = {
 function cropForRatio(iw: number, ih: number, ar: number) {
   const srcAr = iw / ih;
   if (srcAr > ar) {
-    // too wide -> crop width
-    const w = ih * ar;
+    const w = ih * ar; // too wide -> crop width
     return { x: (iw - w) / 2, y: 0, w, h: ih };
   }
-  const h = iw / ar;
+  const h = iw / ar; // too tall -> crop height
   return { x: 0, y: (ih - h) / 2, w: iw, h };
 }
 
 /**
- * Resize (by % and/or aspect ratio) and re-encode an image in one Skia pass.
- * Returns a new file:// uri. Ratio ≠ original center-crops to that aspect;
- * scale then shrinks the result. Never upscales beyond the source.
+ * Pure-math preview of what {@link processToImage} will output for a source of
+ * (iw × ih). Lets the UI show real output dimensions before encoding.
  */
-export async function processToFile(uri: string, opts: ProcessOptions = {}): Promise<string> {
+export function computeOutputDims(iw: number, ih: number, ratio: ResizeRatio, scale: number) {
+  const crop = ratio === 'original' ? { w: iw, h: ih } : cropForRatio(iw, ih, RATIO_AR[ratio]);
+  const s = Math.max(0.05, Math.min(1, scale));
+  return {
+    w: Math.max(1, Math.round(crop.w * s)),
+    h: Math.max(1, Math.round(crop.h * s)),
+  };
+}
+
+/**
+ * Resize (by % and/or aspect ratio) and re-encode an image in one pass.
+ * Returns a verified output file (uri + real byte size + format/mime).
+ * Ratio ≠ original center-crops to that aspect; scale then shrinks the result.
+ * Never upscales beyond the source.
+ */
+export async function processToImage(uri: string, opts: ProcessOptions = {}): Promise<EncodeResult> {
   const { scale = 1, ratio = 'original', format = 'jpg', quality = 92 } = opts;
-  const img = Skia.Image.MakeImageFromEncoded(await Skia.Data.fromURI(uri));
+
+  const data = await Skia.Data.fromURI(uri);
+  const img = Skia.Image.MakeImageFromEncoded(data);
   if (!img) throw new Error('decode_failed');
   const iw = img.width();
   const ih = img.height();
 
-  const crop = ratio === 'original' ? { x: 0, y: 0, w: iw, h: ih } : cropForRatio(iw, ih, RATIO_AR[ratio]);
   const s = Math.max(0.05, Math.min(1, scale));
+
+  // Fast path: no crop and no downscale = pure format transcode. Skips the
+  // offscreen surface entirely, so full-resolution photos (which can exceed the
+  // GPU max-texture size and make MakeOffscreen fail) always convert reliably.
+  if (ratio === 'original' && s >= 1) {
+    return encodeImage(img, format, quality, 'converted');
+  }
+
+  const crop = ratio === 'original' ? { x: 0, y: 0, w: iw, h: ih } : cropForRatio(iw, ih, RATIO_AR[ratio]);
   const outW = Math.max(1, Math.round(crop.w * s));
   const outH = Math.max(1, Math.round(crop.h * s));
 
@@ -60,5 +83,10 @@ export async function processToFile(uri: string, opts: ProcessOptions = {}): Pro
   );
   surface.flush();
 
-  return encodeImageToFile(surface.makeImageSnapshot(), format, quality, 'resized');
+  return encodeImage(surface.makeImageSnapshot(), format, quality, 'converted');
+}
+
+/** Back-compat: same pipeline, returns just the output uri. */
+export async function processToFile(uri: string, opts: ProcessOptions = {}): Promise<string> {
+  return (await processToImage(uri, opts)).uri;
 }
