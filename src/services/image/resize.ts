@@ -17,6 +17,8 @@ export type ProcessOptions = {
   ratio?: ResizeRatio;
   format?: ImgFormat;
   quality?: number;
+  /** Exact output pixels. When set, overrides ratio/scale (cover-crop, no distortion). */
+  target?: { w: number; h: number };
 };
 
 /** center-crop rect of (iw,ih) matching target aspect ratio ar (w/h) */
@@ -34,7 +36,14 @@ function cropForRatio(iw: number, ih: number, ar: number) {
  * Pure-math preview of what {@link processToImage} will output for a source of
  * (iw × ih). Lets the UI show real output dimensions before encoding.
  */
-export function computeOutputDims(iw: number, ih: number, ratio: ResizeRatio, scale: number) {
+export function computeOutputDims(
+  iw: number,
+  ih: number,
+  ratio: ResizeRatio,
+  scale: number,
+  target?: { w: number; h: number },
+) {
+  if (target) return { w: Math.max(1, Math.round(target.w)), h: Math.max(1, Math.round(target.h)) };
   const crop = ratio === 'original' ? { w: iw, h: ih } : cropForRatio(iw, ih, RATIO_AR[ratio]);
   const s = Math.max(0.05, Math.min(1, scale));
   return {
@@ -50,13 +59,34 @@ export function computeOutputDims(iw: number, ih: number, ratio: ResizeRatio, sc
  * Never upscales beyond the source.
  */
 export async function processToImage(uri: string, opts: ProcessOptions = {}): Promise<EncodeResult> {
-  const { scale = 1, ratio = 'original', format = 'jpg', quality = 92 } = opts;
+  const { scale = 1, ratio = 'original', format = 'jpg', quality = 92, target } = opts;
 
   const data = await Skia.Data.fromURI(uri);
   const img = Skia.Image.MakeImageFromEncoded(data);
   if (!img) throw new Error('decode_failed');
   const iw = img.width();
   const ih = img.height();
+
+  // Exact-dimensions path: cover-crop the source to the target aspect, then
+  // draw into a target-sized surface. Used for custom width×height (e.g. exam
+  // photo specs). May upscale to hit the requested pixels.
+  if (target) {
+    const outW = Math.max(1, Math.round(target.w));
+    const outH = Math.max(1, Math.round(target.h));
+    const crop = cropForRatio(iw, ih, outW / outH);
+    const surface = Skia.Surface.MakeOffscreen(outW, outH);
+    if (!surface) throw new Error('surface_failed');
+    const paint = Skia.Paint();
+    paint.setAntiAlias(true);
+    surface.getCanvas().drawImageRect(
+      img,
+      Skia.XYWHRect(crop.x, crop.y, crop.w, crop.h),
+      Skia.XYWHRect(0, 0, outW, outH),
+      paint,
+    );
+    surface.flush();
+    return encodeImage(surface.makeImageSnapshot(), format, quality, 'converted');
+  }
 
   const s = Math.max(0.05, Math.min(1, scale));
 

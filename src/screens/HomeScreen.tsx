@@ -5,17 +5,22 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 import LinearGradient from 'react-native-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
-import { ScanLine, ImagePlus, LayoutGrid, ChevronRight, Grid2x2, FilePen, RefreshCw, ChevronDown } from 'lucide-react-native';
+import {
+  ScanLine, ImagePlus, Grid2x2, FilePen, RefreshCw, ScanText, ChevronDown,
+  FolderOpen, FileText, Download, RotateCw, User, ShieldCheck, Coffee, Sparkles,
+  BookOpen, Settings as SettingsIcon,
+} from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
-import { FolderOpen, FileText, Download, RotateCw, User, ShieldCheck, Coffee, Sparkles, BookOpen } from 'lucide-react-native';
 import { Screen } from '../components/Screen';
 import { Text } from '../components/Text';
 import { Button } from '../components/Button';
 import { DocumentCard } from '../components/DocumentCard';
+import { IconButton } from '../components/IconButton';
 import { ActionSheet } from '../components/ActionSheet';
 import { useImportImages } from '../hooks/useImportImages';
 import { useAppUpdate } from '../hooks/useAppUpdate';
 import { pickPdf } from '../services/pdf/pickPdf';
+import { pickImages } from '../services/gallery';
 import { listDocuments, type DocumentMeta } from '../services/storage';
 import { useTheme } from '../theme';
 import { useT } from '../i18n';
@@ -36,24 +41,53 @@ export function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
     if (picked) navigation.navigate('PdfPreview', { uri: picked.uri, name: picked.name, editable: true });
   };
 
+  const ocrImage = async () => {
+    const [uri] = await pickImages(1);
+    if (uri) navigation.navigate('Ocr', { uri, name: 'Image', kind: 'image' });
+  };
+
   useFocusEffect(
     useCallback(() => {
       listDocuments().then(list => setRecent(list.slice(0, 3)));
     }, []),
   );
 
+  const create: GridItem[] = [
+    { icon: ImagePlus, label: t('home.imgToPdf'), hint: t('home.imgToPdfSub'), onPress: importImages },
+    { icon: FolderOpen, label: t('home.openPdf'), hint: t('home.openPdfSub'), onPress: openExternalPdf },
+  ];
+  const tools: GridItem[] = [
+    { icon: FilePen, label: t('home.pdfEditor'), hint: t('home.pdfEditorDesc'), onPress: () => setPdfSheet(true) },
+    { icon: ScanText, label: t('home.ocr'), hint: t('home.ocrSub'), onPress: ocrImage },
+    { icon: Grid2x2, label: t('home.collage'), hint: t('home.collageSub'), onPress: () => navigation.navigate('CollageStudio') },
+    { icon: RefreshCw, label: t('home.convertShort'), hint: t('home.convertDesc'), onPress: () => navigation.navigate('Convert') },
+  ];
+
   return (
     <Screen scroll>
-      <Pressable
-        onPress={() => { haptics.light(); setBrandMenu(true); }}
-        accessibilityRole="button"
-        accessibilityLabel="About & more"
-        style={({ pressed }) => [styles.brand, pressed && { opacity: 0.6 }]}
-      >
-        <Image source={require('../assets/logo.png')} style={styles.brandLogo} resizeMode="contain" />
-        <Text variant="bodyStrong">{t('home.brand')}</Text>
-        <ChevronDown size={16} color={theme.colors.textTertiary} />
-      </Pressable>
+      <View style={styles.topBar}>
+        <Pressable
+          onPress={() => { haptics.light(); setBrandMenu(true); }}
+          accessibilityRole="button"
+          accessibilityLabel="About & more"
+          style={({ pressed }) => [styles.brand, pressed && { opacity: 0.6 }]}
+        >
+          <Image source={require('../assets/logo.png')} style={styles.brandLogo} resizeMode="contain" />
+          <View style={styles.brandText}>
+            <View style={styles.brandRow}>
+              <Text variant="bodyStrong">{t('home.brand')}</Text>
+              <ChevronDown size={15} color={theme.colors.textTertiary} />
+            </View>
+            <Text variant="caption" color="textSecondary">{t('home.subtitle')}</Text>
+          </View>
+        </Pressable>
+        <IconButton
+          icon={SettingsIcon}
+          variant="surface"
+          onPress={() => navigation.navigate('Settings')}
+          accessibilityLabel={t('tab.settings')}
+        />
+      </View>
 
       {upd.available && (
         <Pressable
@@ -66,13 +100,8 @@ export function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
           </Text>
         </Pressable>
       )}
-      <View style={styles.heading}>
-        <Text variant="display" style={styles.title}>
-          {t('home.title')}
-        </Text>
-      </View>
 
-      <Animated.View entering={FadeInDown.delay(60).springify().damping(18)}>
+      <Animated.View entering={FadeInDown.delay(40).springify().damping(18)}>
         <LinearGradient
           colors={theme.colors.brandGradient}
           start={{ x: 0, y: 0 }}
@@ -100,35 +129,63 @@ export function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
         </LinearGradient>
       </Animated.View>
 
-      <Text variant="title" style={styles.sectionTitle}>
-        {t('home.quickTools')}
-      </Text>
-      <QuickRow i={0} icon={FilePen} label={t('home.pdfEditor')} hint={t('home.pdfEditorSub')} onPress={() => setPdfSheet(true)} />
-      <QuickRow i={1} icon={Grid2x2} label={t('home.collage')} hint={t('home.collageSub')} onPress={() => navigation.navigate('CollageStudio')} />
-      <QuickRow i={2} icon={ImagePlus} label={t('home.imgToPdf')} hint={t('home.imgToPdfSub')} onPress={importImages} />
-      <QuickRow i={3} icon={RefreshCw} label={t('home.convert')} hint={t('home.convertSub')} onPress={() => navigation.navigate('Convert')} />
-      <QuickRow i={4} icon={LayoutGrid} label={t('home.allTools')} hint={t('home.allToolsSub')} onPress={() => navigation.navigate('Tools')} />
-
-      {recent.length > 0 && (
-        <>
-          <View style={styles.recentHead}>
-            <Text variant="title">{t('home.recent')}</Text>
-            <Pressable onPress={() => navigation.navigate('Documents')} accessibilityRole="button">
-              <Text variant="callout" color="brand">
-                {t('home.seeAll')}
-              </Text>
-            </Pressable>
+      <View style={styles.recentHead}>
+        <Text variant="title">{t('home.recentDocs')}</Text>
+        {recent.length > 0 && (
+          <Pressable onPress={() => navigation.navigate('Documents')} accessibilityRole="button" hitSlop={8}>
+            <Text variant="callout" color="brand">{t('home.seeAll')}</Text>
+          </Pressable>
+        )}
+      </View>
+      {recent.length > 0 ? (
+        recent.map(doc => (
+          <DocumentCard
+            key={doc.id}
+            doc={doc}
+            onOpen={d => navigation.navigate('Document', { id: d.id })}
+            onMore={d => navigation.navigate('Document', { id: d.id })}
+          />
+        ))
+      ) : (
+        <View
+          style={[
+            styles.empty,
+            {
+              backgroundColor: theme.colors.surface,
+              borderRadius: theme.radius.lg,
+              borderWidth: theme.mode === 'dark' ? StyleSheet.hairlineWidth : 0,
+              borderColor: theme.colors.border,
+            },
+            theme.elevation(1),
+          ]}
+        >
+          <View style={[styles.emptyBadge, { backgroundColor: theme.colors.brandSubtle, borderRadius: theme.radius.pill }]}>
+            <FileText size={theme.iconSize.lg} color={theme.colors.brand} />
           </View>
-          {recent.map(doc => (
-            <DocumentCard
-              key={doc.id}
-              doc={doc}
-              onOpen={d => navigation.navigate('Document', { id: d.id })}
-              onMore={d => navigation.navigate('Document', { id: d.id })}
-            />
-          ))}
-        </>
+          <Text variant="bodyStrong" style={styles.emptyTitle}>{t('home.emptyTitle')}</Text>
+          <Text variant="caption" color="textSecondary" style={styles.emptySub}>{t('home.emptySub')}</Text>
+          <Button title={t('home.scanCta')} icon={ScanLine} fullWidth={false} onPress={() => navigation.navigate('Scanner')} />
+        </View>
       )}
+
+      <Text variant="title" style={styles.sectionTitle}>{t('home.create')}</Text>
+      <Grid items={create} base={0} />
+
+      <View style={styles.toolsHead}>
+        <Text variant="title">{t('home.tools')}</Text>
+        <Pressable onPress={() => navigation.navigate('Tools')} accessibilityRole="button" hitSlop={8}>
+          <Text variant="callout" color="brand">{t('home.allTools')}</Text>
+        </Pressable>
+      </View>
+      <Grid items={tools} base={2} />
+
+      <View style={styles.privacy}>
+        <View style={styles.privacyRow}>
+          <ShieldCheck size={16} color={theme.colors.textSecondary} />
+          <Text variant="callout" color="textSecondary">{t('home.privacyTitle')}</Text>
+        </View>
+        <Text variant="caption" color="textTertiary" style={styles.privacySub}>{t('home.privacySub')}</Text>
+      </View>
 
       <ActionSheet
         visible={pdfSheet}
@@ -156,29 +213,37 @@ export function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
   );
 }
 
-function QuickRow({
-  i,
-  icon: Icon,
-  label,
-  hint,
-  onPress,
-}: {
-  i: number;
-  icon: LucideIcon;
-  label: string;
-  hint: string;
-  onPress: () => void;
-}) {
+type GridItem = { icon: LucideIcon; label: string; hint: string; onPress: () => void };
+
+/** 2-column card grid — used for both Create and Tools so they read as one system. */
+function Grid({ items, base }: { items: GridItem[]; base: number }) {
+  const rows: GridItem[][] = [];
+  for (let i = 0; i < items.length; i += 2) rows.push(items.slice(i, i + 2));
+  return (
+    <>
+      {rows.map((row, ri) => (
+        <View key={ri} style={styles.gridRow}>
+          {row.map((item, ci) => (
+            <GridCard key={item.label} {...item} i={base + ri * 2 + ci} />
+          ))}
+          {row.length === 1 && <View style={styles.gridCard} />}
+        </View>
+      ))}
+    </>
+  );
+}
+
+function GridCard({ icon: Icon, label, hint, onPress, i }: GridItem & { i: number }) {
   const theme = useTheme();
   return (
     <AnimatedPressable
-      entering={FadeInDown.delay(140 + i * 55).springify().damping(18).stiffness(160)}
+      entering={FadeInDown.delay(120 + i * 45).springify().damping(18).stiffness(160)}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={label}
       android_ripple={{ color: theme.colors.border }}
-      style={({ pressed }) => [
-        styles.row,
+      style={({ pressed }: { pressed: boolean }) => [
+        styles.gridCard,
         {
           backgroundColor: theme.colors.surface,
           borderRadius: theme.radius.lg,
@@ -189,28 +254,26 @@ function QuickRow({
         theme.elevation(1),
       ]}
     >
-      <View style={[styles.rowIcon, { backgroundColor: theme.colors.brandSubtle, borderRadius: theme.radius.md }]}>
+      <View style={[styles.gridIcon, { backgroundColor: theme.colors.brandSubtle, borderRadius: theme.radius.md }]}>
         <Icon size={theme.iconSize.md} color={theme.colors.brand} />
       </View>
-      <View style={styles.rowText}>
-        <Text variant="bodyStrong">{label}</Text>
-        <Text variant="caption" color="textSecondary">
-          {hint}
-        </Text>
-      </View>
-      <ChevronRight size={theme.iconSize.md} color={theme.colors.textTertiary} />
+      <Text variant="bodyStrong" numberOfLines={1}>{label}</Text>
+      <Text variant="caption" color="textSecondary" numberOfLines={1} style={styles.gridHint}>
+        {hint}
+      </Text>
     </AnimatedPressable>
   );
 }
 
 const styles = StyleSheet.create({
-  brand: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 },
-  brandLogo: { width: 34, height: 34, borderRadius: 8 },
-  updateBar: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, marginTop: 14 },
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, marginBottom: 20 },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  brandLogo: { width: 40, height: 40, borderRadius: 10 },
+  brandText: { flex: 1 },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  updateBar: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, marginBottom: 16 },
   updateText: { flex: 1 },
-  heading: { marginTop: 16, marginBottom: 20 },
-  title: { marginTop: 0 },
-  hero: { padding: 22, marginBottom: 28 },
+  hero: { padding: 22, marginBottom: 24 },
   heroIcon: {
     width: 48,
     height: 48,
@@ -222,9 +285,18 @@ const styles = StyleSheet.create({
   },
   heroSub: { marginTop: 6, opacity: 0.9, maxWidth: 260 },
   heroBtn: { marginTop: 18, alignSelf: 'flex-start' },
-  sectionTitle: { marginBottom: 12 },
-  row: { flexDirection: 'row', alignItems: 'center', padding: 14, marginBottom: 12 },
-  rowIcon: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginRight: 14 },
-  rowText: { flex: 1 },
-  recentHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, marginBottom: 12 },
+  recentHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  empty: { alignItems: 'center', padding: 24, marginBottom: 8 },
+  emptyBadge: { width: 64, height: 64, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
+  emptyTitle: { textAlign: 'center' },
+  emptySub: { textAlign: 'center', marginTop: 6, marginBottom: 18, maxWidth: 260 },
+  sectionTitle: { marginTop: 20, marginBottom: 12 },
+  toolsHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 24, marginBottom: 12 },
+  gridRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
+  gridCard: { flex: 1, padding: 16, minHeight: 108, justifyContent: 'flex-start' },
+  gridIcon: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  gridHint: { marginTop: 2 },
+  privacy: { alignItems: 'center', marginTop: 28 },
+  privacyRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  privacySub: { marginTop: 4, textAlign: 'center' },
 });

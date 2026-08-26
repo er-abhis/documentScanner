@@ -19,3 +19,22 @@ buildscript {
 }
 
 apply plugin: "com.facebook.react.rootproject"
+
+// AGP 8 requires every Android library to declare a `namespace`. A few older
+// autolinked deps (e.g. react-native-print) still rely on the legacy manifest
+// `package=` attribute, which AGP 8 rejects. Backfill the namespace from their
+// manifest so they build without patching node_modules.
+subprojects { sp ->
+    sp.plugins.withId("com.android.library") {
+        def androidExt = sp.extensions.findByName("android")
+        if (androidExt != null && androidExt.namespace == null) {
+            def manifestFile = new File(sp.projectDir, "src/main/AndroidManifest.xml")
+            if (manifestFile.exists()) {
+                def m = (manifestFile.text =~ /package="([^"]+)"/)
+                if (m) {
+                    androidExt.namespace = m[0][1]
+                }
+            }
+        }
+    }
+}

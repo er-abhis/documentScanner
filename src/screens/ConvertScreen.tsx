@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Image,
   LayoutAnimation,
@@ -6,6 +6,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  TextInput,
   UIManager,
   useWindowDimensions,
   View,
@@ -15,10 +16,12 @@ import {
   AlertTriangle,
   ArrowRight,
   ImagePlus,
+  Lock,
   RefreshCw,
   Save,
   Share2,
   Trash2,
+  Unlock,
 } from 'lucide-react-native';
 import RNFS from 'react-native-fs';
 import { Screen } from '../components/Screen';
@@ -112,6 +115,13 @@ export function ConvertScreen({ navigation }: RootScreenProps<'Convert'>) {
   const [quality, setQuality] = useState(0.9);
   const [scale, setScale] = useState(1);
   const [ratio, setRatio] = useState<ResizeRatio>('original');
+  const [custom, setCustom] = useState(false);
+  const [customW, setCustomW] = useState('');
+  const [customH, setCustomH] = useState('');
+  const [lockAspect, setLockAspect] = useState(true);
+  const [measured, setMeasured] = useState<number | null>(null);
+  const [measuring, setMeasuring] = useState(false);
+  const measureSeq = useRef(0);
   const [picking, setPicking] = useState(false);
 
   // one sheet drives confirm → progress → success/error
@@ -199,18 +209,71 @@ export function ConvertScreen({ navigation }: RootScreenProps<'Convert'>) {
   const activeUri = sources[activeIndex];
   const activeMeta = metadataList[activeIndex];
 
+  const nW = parseInt(customW, 10);
+  const nH = parseInt(customH, 10);
+  const targetDims = custom && nW > 0 && nH > 0 ? { w: nW, h: nH } : undefined;
+
   const out = activeMeta
-    ? computeOutputDims(activeMeta.w || 1, activeMeta.h || 1, ratio, scale)
+    ? computeOutputDims(activeMeta.w || 1, activeMeta.h || 1, ratio, scale, targetDims)
     : { w: 0, h: 0 };
-  const expSize = activeMeta ? estimateSize(activeMeta.size, activeMeta.w, activeMeta.h, out.w, out.h, format, quality) : 0;
+  const estSize = activeMeta ? estimateSize(activeMeta.size, activeMeta.w, activeMeta.h, out.w, out.h, format, quality) : 0;
+  // Prefer a real measured size (debounced encode of the active image); fall
+  // back to the rough estimate while measuring or on failure.
+  const expSize = measured ?? estSize;
+
+  const onCustomW = (v: string) => {
+    const s = v.replace(/[^0-9]/g, '').slice(0, 5);
+    setCustom(true);
+    setCustomW(s);
+    if (lockAspect && activeMeta && activeMeta.w && activeMeta.h) {
+      const n = parseInt(s, 10);
+      if (n > 0) setCustomH(String(Math.round(n * (activeMeta.h / activeMeta.w))));
+    }
+  };
+  const onCustomH = (v: string) => {
+    const s = v.replace(/[^0-9]/g, '').slice(0, 5);
+    setCustom(true);
+    setCustomH(s);
+    if (lockAspect && activeMeta && activeMeta.w && activeMeta.h) {
+      const n = parseInt(s, 10);
+      if (n > 0) setCustomW(String(Math.round(n * (activeMeta.w / activeMeta.h))));
+    }
+  };
+
+  // Debounced real encode of the active image -> exact output byte size.
+  useEffect(() => {
+    if (!activeUri || !activeMeta) { setMeasured(null); return; }
+    const seq = ++measureSeq.current;
+    setMeasuring(true);
+    const id = setTimeout(async () => {
+      let path = activeUri;
+      let temp: string | null = null;
+      try {
+        if (path.startsWith('content://')) { path = await copyToLocalCache(path); temp = strip(path); }
+        const r = await processToImage(path, {
+          scale, ratio, format, quality: Math.round(quality * 100), target: targetDims,
+        });
+        if (seq === measureSeq.current) setMeasured(r.bytes);
+        try { await RNFS.unlink(strip(r.uri)); } catch {}
+      } catch {
+        if (seq === measureSeq.current) setMeasured(null);
+      } finally {
+        if (temp) { try { await RNFS.unlink(temp); } catch {} }
+        if (seq === measureSeq.current) setMeasuring(false);
+      }
+    }, 350);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeUri, activeMeta, format, quality, scale, ratio, custom, customW, customH]);
 
   const curExt = activeMeta ? (activeMeta.name.split('.').pop() || '').toUpperCase() : '';
   const baseName = activeMeta ? activeMeta.name.replace(/\.[^/.]+$/, '') : '';
   const outName = `${baseName}.${format}`;
 
   // --- responsive, aspect-correct preview frame (no fixed dims) ---
-  const containerAr =
-    ratio === 'original'
+  const containerAr = targetDims
+    ? targetDims.w / targetDims.h
+    : ratio === 'original'
       ? activeMeta && activeMeta.w && activeMeta.h
         ? activeMeta.w / activeMeta.h
         : 4 / 3
@@ -251,6 +314,7 @@ export function ConvertScreen({ navigation }: RootScreenProps<'Convert'>) {
           ratio,
           format,
           quality: Math.round(quality * 100),
+          target: targetDims,
         });
         results.push({ uri: r.uri, bytes: r.bytes });
       }
@@ -397,7 +461,13 @@ export function ConvertScreen({ navigation }: RootScreenProps<'Convert'>) {
                     <Text variant="caption" color="brand">{hi ? 'आउटपुट' : 'Output'}</Text>
                     <Text variant="callout" numberOfLines={1} style={[styles.ioName, { color: theme.colors.brand }]}>{outName}</Text>
                     <Text variant="caption" style={{ color: theme.colors.brand }}>{format.toUpperCase()} · {out.w}×{out.h}</Text>
-                    <Text variant="caption" color="textSecondary">~{formatSize(expSize)} · {hi ? 'अनुमानित' : 'Estimated'}</Text>
+                    <Text variant="caption" color="textSecondary">
+                      {measuring
+                        ? (hi ? 'माप रहे हैं…' : 'Measuring…')
+                        : measured != null
+                          ? `${formatSize(measured)} · ${hi ? 'सटीक' : 'Exact'}`
+                          : `~${formatSize(expSize)} · ${hi ? 'अनुमानित' : 'Estimated'}`}
+                    </Text>
                   </View>
                 </View>
               </View>
@@ -442,14 +512,61 @@ export function ConvertScreen({ navigation }: RootScreenProps<'Convert'>) {
                         anim();
                         haptics.light();
                         setRatio(r);
+                        setCustom(false);
                       }}
-                      style={[styles.chipSm, { backgroundColor: on ? theme.colors.brand : theme.colors.surfaceAlt, borderRadius: theme.radius.pill }]}
+                      style={[styles.chipSm, { backgroundColor: on && !custom ? theme.colors.brand : theme.colors.surfaceAlt, borderRadius: theme.radius.pill }]}
                     >
-                      <Text variant="caption" style={{ color: on ? theme.colors.onBrand : theme.colors.textSecondary }}>{r === 'original' ? t('convert.original') : r}</Text>
+                      <Text variant="caption" style={{ color: on && !custom ? theme.colors.onBrand : theme.colors.textSecondary }}>{r === 'original' ? t('convert.original') : r}</Text>
                     </Pressable>
                   );
                 })}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: custom }}
+                  accessibilityLabel={hi ? 'कस्टम आकार' : 'Custom size'}
+                  onPress={() => {
+                    anim();
+                    haptics.light();
+                    setCustom(true);
+                    if (!customW && activeMeta) { setCustomW(String(activeMeta.w)); setCustomH(String(activeMeta.h)); }
+                  }}
+                  style={[styles.chipSm, { backgroundColor: custom ? theme.colors.brand : theme.colors.surfaceAlt, borderRadius: theme.radius.pill }]}
+                >
+                  <Text variant="caption" style={{ color: custom ? theme.colors.onBrand : theme.colors.textSecondary }}>{hi ? 'कस्टम' : 'Custom'}</Text>
+                </Pressable>
               </View>
+
+              {custom && (
+                <View style={styles.customRow}>
+                  <TextInput
+                    value={customW}
+                    onChangeText={onCustomW}
+                    keyboardType="number-pad"
+                    placeholder={hi ? 'चौड़ाई' : 'Width'}
+                    placeholderTextColor={theme.colors.textTertiary}
+                    accessibilityLabel={hi ? 'चौड़ाई पिक्सेल' : 'Width in pixels'}
+                    style={[styles.dimInput, { color: theme.colors.text, backgroundColor: theme.colors.surfaceAlt, borderColor: theme.colors.border, borderRadius: theme.radius.sm }]}
+                  />
+                  <Text variant="body" color="textTertiary">×</Text>
+                  <TextInput
+                    value={customH}
+                    onChangeText={onCustomH}
+                    keyboardType="number-pad"
+                    placeholder={hi ? 'ऊँचाई' : 'Height'}
+                    placeholderTextColor={theme.colors.textTertiary}
+                    accessibilityLabel={hi ? 'ऊँचाई पिक्सेल' : 'Height in pixels'}
+                    style={[styles.dimInput, { color: theme.colors.text, backgroundColor: theme.colors.surfaceAlt, borderColor: theme.colors.border, borderRadius: theme.radius.sm }]}
+                  />
+                  <Text variant="caption" color="textTertiary">px</Text>
+                  <IconButton
+                    icon={lockAspect ? Lock : Unlock}
+                    variant="surface"
+                    color={lockAspect ? theme.colors.brand : theme.colors.textSecondary}
+                    onPress={() => { haptics.light(); setLockAspect(v => !v); }}
+                    accessibilityLabel={hi ? 'आस्पेक्ट रेशियो लॉक' : 'Lock aspect ratio'}
+                  />
+                </View>
+              )}
               <Text variant="caption" color="textSecondary" style={styles.hint}>
                 {activeMeta ? `${activeMeta.w}×${activeMeta.h} → ${out.w}×${out.h}${ratio === 'original' ? '' : ` (${ratio})`}` : ''}
               </Text>
@@ -468,15 +585,16 @@ export function ConvertScreen({ navigation }: RootScreenProps<'Convert'>) {
                         anim();
                         haptics.light();
                         setScale(p);
+                        setCustom(false);
                       }}
-                      style={[styles.chipSm, { backgroundColor: on ? theme.colors.brand : theme.colors.surfaceAlt, borderRadius: theme.radius.pill }]}
+                      style={[styles.chipSm, { backgroundColor: on && !custom ? theme.colors.brand : theme.colors.surfaceAlt, borderRadius: theme.radius.pill }]}
                     >
-                      <Text variant="caption" style={{ color: on ? theme.colors.onBrand : theme.colors.textSecondary }}>{Math.round(p * 100)}%</Text>
+                      <Text variant="caption" style={{ color: on && !custom ? theme.colors.onBrand : theme.colors.textSecondary }}>{Math.round(p * 100)}%</Text>
                     </Pressable>
                   );
                 })}
               </View>
-              <Slider label={t('convert.scale')} value={scale} min={0.1} max={1} onChange={setScale} format={v => `${Math.round(v * 100)}% → ${out.w}×${out.h}`} />
+              <Slider label={t('convert.scale')} value={scale} min={0.1} max={1} onChange={v => { setScale(v); setCustom(false); }} format={v => `${Math.round(v * 100)}% → ${out.w}×${out.h}`} />
 
               {format === 'png' ? (
                 <Text variant="caption" color="textSecondary" style={styles.hint}>
@@ -596,6 +714,8 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
   chip: { paddingHorizontal: 20, paddingVertical: 10, minHeight: 44, justifyContent: 'center' },
   chipSm: { paddingHorizontal: 14, paddingVertical: 9, minHeight: 40, justifyContent: 'center' },
+  customRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4, marginBottom: 8 },
+  dimInput: { flex: 1, minHeight: 44, paddingHorizontal: 12, borderWidth: StyleSheet.hairlineWidth, fontSize: 15, textAlign: 'center' },
   hint: { marginBottom: 16 },
 
   actions: { flexDirection: 'row', padding: 16, borderTopWidth: StyleSheet.hairlineWidth },
