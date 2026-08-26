@@ -10,7 +10,7 @@ export type Prefs = {
   language: LangPref;
 };
 
-const DEFAULTS: Prefs = { autoUpdate: true, themeMode: 'system', language: 'en' };
+const DEFAULTS: Prefs = { autoUpdate: true, themeMode: 'dark', language: 'en' };
 const FILE = `${RNFS.DocumentDirectoryPath}/prefs.json`;
 
 export async function getPrefs(): Promise<Prefs> {

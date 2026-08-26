@@ -7,7 +7,7 @@ const ThemePrefContext = createContext<Ctx>({ preference: 'system', setPreferenc
 
 /** Holds the user's theme preference (System/Light/Dark), persisted to prefs. */
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [preference, setPrefState] = useState<ThemePref>('system');
+  const [preference, setPrefState] = useState<ThemePref>('dark');
 
   useEffect(() => {
     getPrefs().then(p => setPrefState(p.themeMode)).catch(() => {});
