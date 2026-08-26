@@ -53,3 +53,9 @@
 -keepclassmembers class ** {
   @com.google.android.gms.common.annotation.KeepForSdk *;
 }
+
+# --- Custom Native Modules ---
+-keep class com.abhishek.documentScanner.** { *; }
+-keep interface com.abhishek.documentScanner.** { *; }
+-dontwarn com.abhishek.documentScanner.**
+

@@ -28,8 +28,10 @@
 import * as pdfjs from './pdf.mjs';
 pdfjs.GlobalWorkerOptions.workerSrc = './pdf.worker.mjs';
 
-const RN = window.ReactNativeWebView;
-const post = (m) => RN && RN.postMessage(JSON.stringify(m));
+const post = (m) => {
+  const rn = window.ReactNativeWebView;
+  if (rn) rn.postMessage(JSON.stringify(m));
+};
 let doc = null;
 
 async function load(b64) {

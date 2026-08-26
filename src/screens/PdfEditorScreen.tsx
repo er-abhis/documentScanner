@@ -205,12 +205,24 @@ export function PdfEditorScreen({ route, navigation }: RootScreenProps<'PdfEdito
           onTextSelect={selectText}
           onTextMove={moveText}
         />
-      </View>
 
-      <View style={styles.pageNav}>
-        <IconButton icon={ChevronLeft} onPress={() => setPage(p => Math.max(0, p - 1))} disabled={page <= 0} accessibilityLabel={t('pdfEditor.prevPage')} />
-        <Text variant="callout" color="textSecondary">{t('pdfEditor.page')} {page + 1} / {uris.length}{isText ? ` · ${t('pdfEditor.tapToAddText')}` : ''}</Text>
-        <IconButton icon={ChevronRight} onPress={() => setPage(p => Math.min(uris.length - 1, p + 1))} disabled={page >= uris.length - 1} accessibilityLabel={t('pdfEditor.nextPage')} />
+        {editing && (
+          <View style={[styles.floatingTip, { backgroundColor: theme.mode === 'dark' ? 'rgba(15, 22, 34, 0.92)' : 'rgba(255, 255, 255, 0.92)', borderColor: theme.colors.border }]}>
+            <Text variant="caption" color="textSecondary" style={styles.floatingTipText}>
+              {isText
+                ? t('pdfEditor.tapToAddText')
+                : tool === 'erase'
+                ? 'Drag over drawings to erase'
+                : 'Use two fingers to zoom / pan'}
+            </Text>
+          </View>
+        )}
+
+        <View style={[styles.pageNav, { backgroundColor: theme.mode === 'dark' ? 'rgba(30, 41, 59, 0.9)' : 'rgba(255, 255, 255, 0.9)', borderColor: theme.colors.border }]}>
+          <IconButton icon={ChevronLeft} onPress={() => setPage(p => Math.max(0, p - 1))} disabled={page <= 0} accessibilityLabel={t('pdfEditor.prevPage')} size={18} />
+          <Text variant="callout" color="textSecondary" style={styles.pageText}>{t('pdfEditor.page')} {page + 1} / {uris.length}</Text>
+          <IconButton icon={ChevronRight} onPress={() => setPage(p => Math.min(uris.length - 1, p + 1))} disabled={page >= uris.length - 1} accessibilityLabel={t('pdfEditor.nextPage')} size={18} />
+        </View>
       </View>
 
       <View style={[styles.bar, { backgroundColor: theme.colors.surface, borderTopColor: theme.colors.border }]}>
@@ -218,7 +230,19 @@ export function PdfEditorScreen({ route, navigation }: RootScreenProps<'PdfEdito
           <View style={styles.colors}>
             {colors.map(c => (
               <Pressable key={c} onPress={() => setColor(c)} hitSlop={HIT_SLOP} accessibilityLabel={`${t('pdfEditor.color')} ${c}`}
-                style={[styles.swatch, { backgroundColor: c, borderColor: color === c ? theme.colors.brand : theme.colors.border, borderWidth: color === c ? 3 : StyleSheet.hairlineWidth }]} />
+                style={[
+                  styles.swatch,
+                  { backgroundColor: c, borderColor: theme.colors.border, borderWidth: StyleSheet.hairlineWidth },
+                  color === c && {
+                    transform: [{ scale: 1.15 }],
+                    borderWidth: 2,
+                    borderColor: theme.colors.brand,
+                  }
+                ]}>
+                {color === c && (
+                  <View style={[styles.activeDot, { backgroundColor: c === '#FFFFFF' ? '#111111' : '#FFFFFF' }]} />
+                )}
+              </Pressable>
             ))}
           </View>
         )}
@@ -269,11 +293,43 @@ const styles = StyleSheet.create({
   head: { paddingHorizontal: 20 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   canvas: { flex: 1, marginHorizontal: 12, marginTop: 8, borderRadius: 16, overflow: 'hidden' },
-  pageNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 16, paddingVertical: 8 },
+  pageNav: {
+    position: 'absolute',
+    bottom: 16,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  pageText: { paddingHorizontal: 8 },
+  floatingTip: {
+    position: 'absolute',
+    top: 16,
+    alignSelf: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  floatingTipText: { textTransform: 'capitalize' },
   bar: { paddingTop: 10, paddingBottom: 12, borderTopWidth: StyleSheet.hairlineWidth },
   sliderWrap: { paddingHorizontal: 16 },
   colors: { flexDirection: 'row', gap: 10, alignItems: 'center', paddingHorizontal: 16, marginBottom: 8 },
-  swatch: { width: 28, height: 28, borderRadius: 14 },
+  swatch: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  activeDot: { width: 8, height: 8, borderRadius: 4 },
   tools: { paddingHorizontal: 12, gap: 4, alignItems: 'center' },
   toolBtn: { alignItems: 'center', justifyContent: 'center', gap: 2, paddingHorizontal: 12, paddingVertical: 8, minWidth: 54 },
   divider: { width: StyleSheet.hairlineWidth, height: 32, backgroundColor: '#00000022', marginHorizontal: 6 },

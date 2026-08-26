@@ -33,8 +33,9 @@ export function PdfTextEditorScreen({ route, navigation }: RootScreenProps<'PdfT
   const ready = useDeferredMount();
   const { uri, name } = route.params;
   const webRef = useRef<any>(null);
-  const b64 = useRef<string | null>(null);
 
+  const [b64Data, setB64Data] = useState<string | null>(null);
+  const [webViewReady, setWebViewReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [scanned, setScanned] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -45,18 +46,25 @@ export function PdfTextEditorScreen({ route, navigation }: RootScreenProps<'PdfT
 
   useEffect(() => {
     RNFS.readFile(uri.replace(/^file:\/\//, ''), 'base64')
-      .then(d => (b64.current = d))
+      .then(d => setB64Data(d))
       .catch(() => Alert.alert(t('pdfTextEditor.openFail'), t('pdfTextEditor.openFailMsg')));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uri]);
 
   const post = (msg: object) => webRef.current?.postMessage(JSON.stringify(msg));
 
+  useEffect(() => {
+    if (b64Data && webViewReady) {
+      post({ type: 'load', b64: b64Data });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [b64Data, webViewReady]);
+
   const onMessage = useCallback((e: { nativeEvent: { data: string } }) => {
     let m: any;
     try { m = JSON.parse(e.nativeEvent.data); } catch { return; }
     if (m.type === 'ready') {
-      if (b64.current) post({ type: 'load', b64: b64.current });
+      setWebViewReady(true);
     } else if (m.type === 'loaded') {
       setLoading(false);
       setScanned(!m.hasText);

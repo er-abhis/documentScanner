@@ -1,6 +1,8 @@
 import { useCallback, useState } from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 import LinearGradient from 'react-native-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import { ScanLine, ImagePlus, LayoutGrid, ChevronRight, Grid2x2, FilePen, RefreshCw, ChevronDown } from 'lucide-react-native';
@@ -101,11 +103,11 @@ export function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
       <Text variant="title" style={styles.sectionTitle}>
         {t('home.quickTools')}
       </Text>
-      <QuickRow icon={FilePen} label={t('home.pdfEditor')} hint={t('home.pdfEditorSub')} onPress={() => setPdfSheet(true)} />
-      <QuickRow icon={Grid2x2} label={t('home.collage')} hint={t('home.collageSub')} onPress={() => navigation.navigate('CollageStudio')} />
-      <QuickRow icon={ImagePlus} label={t('home.imgToPdf')} hint={t('home.imgToPdfSub')} onPress={importImages} />
-      <QuickRow icon={RefreshCw} label={t('home.convert')} hint={t('home.convertSub')} onPress={() => navigation.navigate('Convert')} />
-      <QuickRow icon={LayoutGrid} label={t('home.allTools')} hint={t('home.allToolsSub')} onPress={() => navigation.navigate('Tools')} />
+      <QuickRow i={0} icon={FilePen} label={t('home.pdfEditor')} hint={t('home.pdfEditorSub')} onPress={() => setPdfSheet(true)} />
+      <QuickRow i={1} icon={Grid2x2} label={t('home.collage')} hint={t('home.collageSub')} onPress={() => navigation.navigate('CollageStudio')} />
+      <QuickRow i={2} icon={ImagePlus} label={t('home.imgToPdf')} hint={t('home.imgToPdfSub')} onPress={importImages} />
+      <QuickRow i={3} icon={RefreshCw} label={t('home.convert')} hint={t('home.convertSub')} onPress={() => navigation.navigate('Convert')} />
+      <QuickRow i={4} icon={LayoutGrid} label={t('home.allTools')} hint={t('home.allToolsSub')} onPress={() => navigation.navigate('Tools')} />
 
       {recent.length > 0 && (
         <>
@@ -155,11 +157,13 @@ export function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
 }
 
 function QuickRow({
+  i,
   icon: Icon,
   label,
   hint,
   onPress,
 }: {
+  i: number;
   icon: LucideIcon;
   label: string;
   hint: string;
@@ -167,7 +171,8 @@ function QuickRow({
 }) {
   const theme = useTheme();
   return (
-    <Pressable
+    <AnimatedPressable
+      entering={FadeInDown.delay(140 + i * 55).springify().damping(18).stiffness(160)}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={label}
@@ -194,7 +199,7 @@ function QuickRow({
         </Text>
       </View>
       <ChevronRight size={theme.iconSize.md} color={theme.colors.textTertiary} />
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 

@@ -1,8 +1,8 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import { Canvas, Image as SkiaImage, Picture, createPicture, useImage } from '@shopify/react-native-skia';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { runOnJS } from 'react-native-reanimated';
+import Animated, { runOnJS, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { paintAnnotations } from '../../services/annotate/paint';
 import { systemFont } from '../../services/annotate/font';
 import type { Annotation, Pt, ShapeKind, StrokeTool, TextItem } from '../../services/annotate/types';
@@ -35,13 +35,29 @@ export function AnnotationCanvas({ uri, annotations, tool, color, width, opacity
   const moved = useRef(false);
   const dragText = useRef<{ id: string; orig: Pt; grab: Pt } | null>(null);
 
+  // Zoom and Pan shared values
+  const scale = useSharedValue(1);
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
+
+  const startScale = useSharedValue(1);
+  const startTranslateX = useSharedValue(0);
+  const startTranslateY = useSharedValue(0);
+
+  // Reset zoom and translation on page/document URI changes
+  useEffect(() => {
+    scale.value = 1;
+    translateX.value = 0;
+    translateY.value = 0;
+  }, [uri, scale, translateX, translateY]);
+
   const rect = useMemo(() => {
     if (!image || box.w === 0) return null;
     const iw = image.width();
     const ih = image.height();
-    const scale = Math.min(box.w / iw, box.h / ih);
-    const w = iw * scale;
-    const h = ih * scale;
+    const scaleFactor = Math.min(box.w / iw, box.h / ih);
+    const w = iw * scaleFactor;
+    const h = ih * scaleFactor;
     return { x: (box.w - w) / 2, y: (box.h - h) / 2, w, h };
   }, [image, box]);
 
@@ -52,6 +68,16 @@ export function AnnotationCanvas({ uri, annotations, tool, color, width, opacity
     const nx = (x - rect.x) / rect.w;
     const ny = (y - rect.y) / rect.h;
     return { x: Math.max(0, Math.min(1, nx)), y: Math.max(0, Math.min(1, ny)) };
+  };
+
+  // Map absolute screen/container gesture coordinate to unscaled canvas coordinates
+  const mapCoords = (x: number, y: number) => {
+    'worklet';
+    const cx = box.w / 2;
+    const cy = box.h / 2;
+    const origX = (x - cx) / scale.value + cx - translateX.value;
+    const origY = (y - cy) / scale.value + cy - translateY.value;
+    return { x: origX, y: origY };
   };
 
   // hit-test a text annotation at normalized point
@@ -82,6 +108,7 @@ export function AnnotationCanvas({ uri, annotations, tool, color, width, opacity
       dragText.current = t ? { id: t.id, orig: { x: t.x, y: t.y }, grab: p } : null;
     }
   };
+
   const extend = (x: number, y: number) => {
     const p = norm(x, y);
     if (!p) return;
@@ -94,6 +121,7 @@ export function AnnotationCanvas({ uri, annotations, tool, color, width, opacity
       onTextMove(d.id, { x: d.orig.x + (p.x - d.grab.x), y: d.orig.y + (p.y - d.grab.y) });
     }
   };
+
   const end = () => {
     if (tool === 'text') {
       if (!moved.current && start.current) {
@@ -113,15 +141,50 @@ export function AnnotationCanvas({ uri, annotations, tool, color, width, opacity
     });
   };
 
-  const active = tool !== 'view';
-  const pan = Gesture.Pan()
-    .enabled(active)
-    .minDistance(0)
+  // Zoom Gestures
+  const pinchGesture = Gesture.Pinch()
+    .onStart(() => {
+      startScale.value = scale.value;
+    })
+    .onUpdate(e => {
+      scale.value = Math.max(1, Math.min(4, startScale.value * e.scale));
+    });
+
+  const navPanGesture = Gesture.Pan()
+    .minPointers(tool === 'view' ? 1 : 2)
+    .onStart(() => {
+      startTranslateX.value = translateX.value;
+      startTranslateY.value = translateY.value;
+    })
+    .onUpdate(e => {
+      const maxTx = Math.max(0, (scale.value - 1) * box.w / 2);
+      const maxTy = Math.max(0, (scale.value - 1) * box.h / 2);
+      translateX.value = Math.max(-maxTx, Math.min(maxTx, startTranslateX.value + e.translationX));
+      translateY.value = Math.max(-maxTy, Math.min(maxTy, startTranslateY.value + e.translationY));
+    });
+
+  // Drawing Gesture (exactly 1 finger, mapped via mapCoords)
+  const drawGesture = Gesture.Pan()
+    .enabled(tool !== 'view')
     .maxPointers(1)
-    .onBegin(e => runOnJS(begin)(e.x, e.y))
-    .onUpdate(e => runOnJS(extend)(e.x, e.y))
-    .onEnd(() => runOnJS(end)())
-    .onFinalize(() => runOnJS(end)());
+    .minDistance(0)
+    .onBegin(e => {
+      const mapped = mapCoords(e.x, e.y);
+      runOnJS(begin)(mapped.x, mapped.y);
+    })
+    .onUpdate(e => {
+      const mapped = mapCoords(e.x, e.y);
+      runOnJS(extend)(mapped.x, mapped.y);
+    })
+    .onEnd(() => {
+      runOnJS(end)();
+    })
+    .onFinalize(() => {
+      runOnJS(end)();
+    });
+
+  const zoomGesture = Gesture.Simultaneous(pinchGesture, navPanGesture);
+  const gesture = tool === 'view' ? zoomGesture : Gesture.Simultaneous(zoomGesture, drawGesture);
 
   const picture = useMemo(() => {
     if (!rect) return null;
@@ -132,13 +195,27 @@ export function AnnotationCanvas({ uri, annotations, tool, color, width, opacity
     });
   }, [rect, annotations, live]);
 
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      flex: 1,
+      width: '100%',
+      transform: [
+        { translateX: translateX.value },
+        { translateY: translateY.value },
+        { scale: scale.value }
+      ]
+    };
+  });
+
   return (
-    <GestureDetector gesture={pan}>
+    <GestureDetector gesture={gesture}>
       <View style={styles.fill} onLayout={onLayout}>
-        <Canvas style={styles.fill}>
-          {image && rect && <SkiaImage image={image} x={rect.x} y={rect.y} width={rect.w} height={rect.h} fit="fill" />}
-          {picture && <Picture picture={picture} />}
-        </Canvas>
+        <Animated.View style={animatedStyle}>
+          <Canvas style={styles.fill}>
+            {image && rect && <SkiaImage image={image} x={rect.x} y={rect.y} width={rect.w} height={rect.h} fit="fill" />}
+            {picture && <Picture picture={picture} />}
+          </Canvas>
+        </Animated.View>
       </View>
     </GestureDetector>
   );
