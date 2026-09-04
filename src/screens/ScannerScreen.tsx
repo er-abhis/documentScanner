@@ -5,6 +5,7 @@ import { Header } from '../components/Header';
 import { LoadingState } from '../components/LoadingState';
 import { EmptyState } from '../components/EmptyState';
 import { useDocumentScanner } from '../hooks/useDocumentScanner';
+import { detectBarcode } from '../services/barcode';
 import { useDraft } from '../state/draft';
 import { useT } from '../i18n';
 import type { RootScreenProps } from '../types/navigation';
@@ -19,6 +20,7 @@ export function ScannerScreen({ route, navigation }: RootScreenProps<'Scanner'>)
   const { state, scan } = useDocumentScanner();
   const { addPages, clear } = useDraft();
   const launched = useRef(false);
+  const handled = useRef(false);
 
   useEffect(() => {
     if (launched.current) return;
@@ -28,13 +30,27 @@ export function ScannerScreen({ route, navigation }: RootScreenProps<'Scanner'>)
   }, [append, clear, scan]);
 
   useEffect(() => {
-    if (state.status === 'success') {
+    if (state.status === 'cancelled') {
+      if (navigation.canGoBack()) navigation.goBack();
+      return;
+    }
+    if (state.status !== 'success' || handled.current) return;
+    handled.current = true;
+
+    (async () => {
+      // A QR/barcode captured instead of a document → show its details.
+      const first = state.pages[0]?.uri;
+      if (!append && first) {
+        const code = await detectBarcode(first);
+        if (code) {
+          navigation.replace('QrResult', { value: code.value, format: code.format });
+          return;
+        }
+      }
       addPages(state.pages.map(p => p.uri));
       if (append) navigation.goBack();
       else navigation.replace('Pages');
-    } else if (state.status === 'cancelled') {
-      if (navigation.canGoBack()) navigation.goBack();
-    }
+    })();
   }, [state, append, addPages, navigation]);
 
   if (state.status === 'error') {

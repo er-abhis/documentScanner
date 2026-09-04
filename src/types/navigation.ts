@@ -18,6 +18,9 @@ export type RootStackParamList = {
   Tools: undefined;
   Settings: undefined;
   Scanner: { append?: boolean } | undefined;
+  QrResult: { value: string; format: number };
+  ScanQr: undefined;
+  CreateQr: { mode?: 'normal' | 'secret' } | undefined;
   Pages: undefined;
   Joiner: undefined;
   CollageStudio: undefined;

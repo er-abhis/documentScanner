@@ -1,7 +1,7 @@
 buildscript {
     ext {
         buildToolsVersion = "37.0.0"
-        minSdkVersion = 24
+        minSdkVersion = 26 // react-native-vision-camera requires 26+
         compileSdkVersion = 37
         targetSdkVersion = 36
         ndkVersion = "27.1.12297006"
@@ -33,6 +33,20 @@ subprojects { sp ->
                 def m = (manifestFile.text =~ /package="([^"]+)"/)
                 if (m) {
                     androidExt.namespace = m[0][1]
+                }
+            }
+        }
+
+        // react-native-print hard-codes compileSdk 31 / buildTools 31.0.0,
+        // which RN 0.87 rejects via the AAR metadata check. Force it onto the
+        // project-wide versions via finalizeDsl (the last hook before AGP
+        // reads/locks the DSL). Scoped to this module so nothing else changes.
+        if (sp.name == "react-native-print") {
+            def androidComponents = sp.extensions.findByName("androidComponents")
+            if (androidComponents != null) {
+                androidComponents.finalizeDsl { dsl ->
+                    dsl.compileSdk = rootProject.ext.compileSdkVersion
+                    dsl.buildToolsVersion = rootProject.ext.buildToolsVersion
                 }
             }
         }

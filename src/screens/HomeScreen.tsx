@@ -8,7 +8,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import {
   ScanLine, ImagePlus, Grid2x2, FilePen, RefreshCw, ScanText, ArrowRight, ChevronRight,
   FolderOpen, FileText, Download, RotateCw, User, ShieldCheck, Coffee, Sparkles,
-  BookOpen, Menu, Bell, Crown, Lock, Wand2, Layers, FileDown, Grid3x3, Check, Wifi,
+  BookOpen, Menu, Bell, Crown, Lock, Wand2, Layers, FileDown, Grid3x3, Check, Wifi, QrCode, LockKeyhole,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { Screen } from '../components/Screen';
@@ -39,7 +39,12 @@ export function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
   const [menu, setMenu] = useState(false);
   const upd = useAppUpdate();
 
-  const toolCols = width >= 700 ? 4 : 2;
+  // Responsive breakpoints — adapt density to the physical screen width so the
+  // layout holds from small phones (~320dp) to tablets, not just the emulator.
+  const small = width < 360;
+  const tablet = width >= 700;
+  const toolCols = tablet ? 4 : 2;
+  const cardMinH = small ? 96 : 112;
 
   const openExternalPdf = async () => {
     const picked = await pickPdf();
@@ -63,7 +68,9 @@ export function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
 
   useFocusEffect(
     useCallback(() => {
-      listDocuments().then(list => setRecent(list.slice(0, 8)));
+      listDocuments()
+        .then(list => setRecent(list.slice(0, 8)))
+        .catch(() => setRecent([]));
     }, []),
   );
 
@@ -71,6 +78,12 @@ export function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
     { icon: FilePen, tint: theme.colors.brand, label: t('home.createPdf'), hint: t('home.createPdfSub'), onPress: importImages },
     { icon: FolderOpen, tint: theme.colors.star, label: t('home.openPdf'), hint: t('home.openPdfBrowse'), onPress: openExternalPdf },
     { icon: ImagePlus, tint: theme.colors.accent, label: t('home.imgToPdf'), hint: t('home.imgToPdfConv'), onPress: importImages },
+  ];
+
+  const qr: AccentItem[] = [
+    { icon: QrCode, tint: theme.colors.accent, label: t('qr.scanQr'), hint: t('qr.scanQrSub'), onPress: () => navigation.navigate('ScanQr') },
+    { icon: Grid3x3, tint: theme.colors.brand, label: t('qr.createQr'), hint: t('qr.createQrSub'), onPress: () => navigation.navigate('CreateQr') },
+    { icon: LockKeyhole, tint: theme.colors.star, label: t('qr.secretQr'), hint: t('qr.secretQrSub'), onPress: () => navigation.navigate('CreateQr', { mode: 'secret' }) },
   ];
 
   const tools: AccentItem[] = [
@@ -101,9 +114,9 @@ export function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
           <Menu size={22} color={theme.colors.text} />
         </Pressable>
         <View style={styles.headerText}>
-          <Text variant="h2" numberOfLines={1}>{t('home.brand')}</Text>
+          <Text variant="h2" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{t('home.brand')}</Text>
           <View style={styles.subRow}>
-            <Text variant="caption" color="textSecondary" numberOfLines={1}>{t('home.subtitle')}</Text>
+            <Text variant="caption" color="textSecondary" numberOfLines={1} style={styles.flexShrink}>{t('home.subtitle')}</Text>
             <Lock size={12} color={theme.colors.brand} />
           </View>
         </View>
@@ -175,7 +188,20 @@ export function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
       {/* quick actions */}
       <View style={styles.quickRow}>
         {quick.map((q, i) => (
-          <AccentCard key={q.label} {...q} i={i} theme={theme} compact />
+          <AccentCard key={q.label} {...q} i={i} theme={theme} compact minH={cardMinH} />
+        ))}
+      </View>
+
+      {/* QR Tools */}
+      <View style={styles.sectionHead}>
+        <View style={styles.rowCenter}>
+          <Text variant="title">{t('qr.section')}</Text>
+          <QrCode size={15} color={theme.colors.accent} style={styles.ml6} />
+        </View>
+      </View>
+      <View style={styles.quickRow}>
+        {qr.map((q, i) => (
+          <AccentCard key={q.label} {...q} i={i} theme={theme} compact minH={cardMinH} />
         ))}
       </View>
 
@@ -285,7 +311,7 @@ function Badge({ theme, icon: Icon, tint, label }: { theme: Theme; icon: LucideI
   );
 }
 
-function AccentCard({ icon: Icon, tint, label, hint, onPress, i, theme, compact, grid }: AccentItem & { i: number; theme: Theme; compact?: boolean; grid?: boolean }) {
+function AccentCard({ icon: Icon, tint, label, hint, onPress, i, theme, compact, grid, minH }: AccentItem & { i: number; theme: Theme; compact?: boolean; grid?: boolean; minH?: number }) {
   return (
     <AnimatedPressable
       entering={FadeInDown.delay(100 + i * 45).springify().damping(18).stiffness(160)}
@@ -295,6 +321,7 @@ function AccentCard({ icon: Icon, tint, label, hint, onPress, i, theme, compact,
       android_ripple={{ color: theme.colors.border }}
       style={({ pressed }: { pressed: boolean }) => [
         compact ? styles.quickCard : styles.gridCard,
+        minH ? { minHeight: minH } : null,
         {
           backgroundColor: grid ? 'transparent' : theme.colors.surface,
           borderColor: theme.colors.border,
@@ -315,6 +342,7 @@ function AccentCard({ icon: Icon, tint, label, hint, onPress, i, theme, compact,
 
 const styles = StyleSheet.create({
   flex1: { flex: 1 },
+  flexShrink: { flexShrink: 1 },
   center: { textAlign: 'center' },
   rowCenter: { flexDirection: 'row', alignItems: 'center' },
   ml6: { marginLeft: 6 },
@@ -328,7 +356,7 @@ const styles = StyleSheet.create({
   iconSquare: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderWidth: StyleSheet.hairlineWidth },
   headerText: { flex: 1 },
   subRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
-  proPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, height: 32, borderWidth: StyleSheet.hairlineWidth },
+  proPill: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, height: 32, borderWidth: StyleSheet.hairlineWidth },
 
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 18 },
   badge: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderWidth: StyleSheet.hairlineWidth },

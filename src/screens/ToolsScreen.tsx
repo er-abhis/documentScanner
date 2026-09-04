@@ -9,6 +9,9 @@ import {
   FolderOpen,
   RefreshCw,
   ScanText,
+  QrCode,
+  Grid3x3,
+  LockKeyhole,
   type LucideIcon,
 } from 'lucide-react-native';
 import { Screen } from '../components/Screen';
@@ -45,6 +48,14 @@ export function ToolsScreen() {
         { icon: ImagePlus, label: t('home.imgToPdf'), hint: t('tools.imgPdfSub'), onPress: importImages },
         { icon: RefreshCw, label: t('home.convert'), hint: t('home.convertSub'), onPress: () => navigation.navigate('Convert') },
         { icon: ScanText, label: t('tools.scanText'), hint: t('tools.scanTextSub'), onPress: ocrImage },
+      ],
+    },
+    {
+      title: t('qr.section'),
+      tools: [
+        { icon: QrCode, label: t('qr.scanQr'), hint: t('qr.scanQrSub'), onPress: () => navigation.navigate('ScanQr') },
+        { icon: Grid3x3, label: t('qr.createQr'), hint: t('qr.createQrSub'), onPress: () => navigation.navigate('CreateQr') },
+        { icon: LockKeyhole, label: t('qr.secretQr'), hint: t('qr.secretQrSub'), onPress: () => navigation.navigate('CreateQr', { mode: 'secret' }) },
       ],
     },
     {

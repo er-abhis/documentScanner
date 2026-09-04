@@ -9,6 +9,9 @@ import { useTheme } from '../theme';
 import type { RootStackParamList } from '../types/navigation';
 import { TabNavigator } from './TabNavigator';
 import { ScannerScreen } from '../screens/ScannerScreen';
+import { QrResultScreen } from '../screens/QrResultScreen';
+import { ScanQrScreen } from '../screens/ScanQrScreen';
+import { CreateQrScreen } from '../screens/CreateQrScreen';
 import { PagesScreen } from '../screens/PagesScreen';
 import { DocumentScreen } from '../screens/DocumentScreen';
 import { JoinerScreen } from '../screens/JoinerScreen';
@@ -60,6 +63,9 @@ export function RootNavigator() {
       >
         <Stack.Screen name="Tabs" component={TabNavigator} />
         <Stack.Screen name="Scanner" component={ScannerScreen} />
+        <Stack.Screen name="QrResult" component={QrResultScreen} />
+        <Stack.Screen name="ScanQr" component={ScanQrScreen} />
+        <Stack.Screen name="CreateQr" component={CreateQrScreen} />
         <Stack.Screen name="Pages" component={PagesScreen} />
         <Stack.Screen name="Joiner" component={JoinerScreen} />
         <Stack.Screen name="CollageStudio" component={CollageStudioScreen} />

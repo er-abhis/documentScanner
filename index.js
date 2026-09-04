@@ -2,6 +2,9 @@
  * @format
  */
 
+// Polyfill crypto.getRandomValues (Hermes ships no CSPRNG) so Secret-QR
+// AES-256-GCM key/nonce generation has real entropy. Must load first.
+import 'react-native-get-random-values';
 import { AppRegistry, LogBox } from 'react-native';
 import { enableScreens, enableFreeze } from 'react-native-screens';
 import App from './App';
