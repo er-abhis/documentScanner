@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import {
   Pen, Highlighter, Eraser, Undo2, Redo2, Check,
   Type, Square, Circle, Minus, MoveUpRight,
@@ -10,6 +10,8 @@ import { Header } from '../components/Header';
 import { Text } from '../components/Text';
 import { Slider } from '../components/Slider';
 import { LoadingState } from '../components/LoadingState';
+import { useToast } from '../components/Toast';
+import { useDialog } from '../components/Dialog';
 import { TextInputModal } from '../components/TextInputModal';
 import { AnnotationCanvas, type CanvasTool } from '../components/annotate/AnnotationCanvas';
 import { flattenAnnotations } from '../services/annotate/flatten';
@@ -30,6 +32,8 @@ const SHAPE_TOOLS: { key: CanvasTool; icon: LucideIcon; labelKey: StringKey }[] 
 export function AnnotateScreen({ route, navigation }: RootScreenProps<'Annotate'>) {
   const theme = useTheme();
   const t = useT();
+  const toast = useToast();
+  const dialog = useDialog();
   const { uri, onDone } = route.params;
 
   const [anns, setAnnsState] = useState<Annotation[]>([]);
@@ -89,15 +93,19 @@ export function AnnotateScreen({ route, navigation }: RootScreenProps<'Annotate'
       navigation.goBack();
     } catch {
       setSaving(false);
-      Alert.alert(t('annotate.saveFail'), t('annotate.tryAgain'));
+      toast({ variant: 'error', message: t('annotate.tryAgain') });
     }
   };
-  const back = () => {
+  const back = async () => {
     if (anns.length === 0 && past.current.length === 0) return navigation.goBack();
-    Alert.alert(t('annotate.discardTitle'), t('annotate.discardMsg'), [
-      { text: t('annotate.keepEditing'), style: 'cancel' },
-      { text: t('annotate.discard'), style: 'destructive', onPress: () => navigation.goBack() },
-    ]);
+    const ok = await dialog.confirm({
+      title: t('annotate.discardTitle'),
+      message: t('annotate.discardMsg'),
+      confirmText: t('annotate.discard'),
+      cancelText: t('annotate.keepEditing'),
+      destructive: true,
+    });
+    if (ok) navigation.goBack();
   };
 
   if (saving) return (<Screen center><LoadingState label={t('annotate.saving')} /></Screen>);

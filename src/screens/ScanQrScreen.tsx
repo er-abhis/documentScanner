@@ -20,6 +20,7 @@ import {
   Flashlight,
   FlashlightOff,
   ScanLine,
+  TriangleAlert,
 } from 'lucide-react-native';
 import { Screen } from '../components/Screen';
 import { Header } from '../components/Header';
@@ -47,6 +48,7 @@ export function ScanQrScreen({ navigation }: RootScreenProps<'ScanQr'>) {
 
   const [asked, setAsked] = useState(false);
   const [torch, setTorch] = useState(false);
+  const [camError, setCamError] = useState('');
   const locked = useRef(false); // fire navigation only once per detection
 
   useEffect(() => {
@@ -125,6 +127,23 @@ export function ScanQrScreen({ navigation }: RootScreenProps<'ScanQr'>) {
     );
   }
 
+  // Surface a real camera/scanner failure instead of a dead preview.
+  if (camError) {
+    return (
+      <Screen>
+        <Header title={t('qr.scanTitle')} onBack={() => navigation.goBack()} />
+        <EmptyState
+          icon={TriangleAlert}
+          title={t('qr.scanError')}
+          subtitle={camError}
+          actionLabel={t('qr.scanAgain')}
+          actionIcon={ScanLine}
+          onAction={() => setCamError('')}
+        />
+      </Screen>
+    );
+  }
+
   return (
     <View style={styles.fill}>
       <StatusBar barStyle="light-content" />
@@ -133,11 +152,13 @@ export function ScanQrScreen({ navigation }: RootScreenProps<'ScanQr'>) {
         device={device}
         isActive={isFocused}
         codeScanner={codeScanner}
+        onError={e => setCamError(e.message)}
         torch={torch ? 'on' : 'off'}
       />
 
-      {/* Framing overlay + controls */}
-      <SafeAreaView style={styles.fill} pointerEvents="box-none">
+      {/* Framing overlay + controls — MUST stay transparent so the camera
+          preview shows through; a solid background here hides the preview. */}
+      <SafeAreaView style={styles.overlay} pointerEvents="box-none">
         <View style={styles.topBar}>
           <Pressable
             onPress={() => navigation.goBack()}
@@ -172,6 +193,7 @@ export function ScanQrScreen({ navigation }: RootScreenProps<'ScanQr'>) {
 
 const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: '#000' },
+  overlay: { flex: 1 },
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',

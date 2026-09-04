@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 
 // react-native-webview's JSX types clash with React 19's; the runtime is fine.
@@ -12,6 +12,7 @@ import { Text } from '../components/Text';
 import { Button } from '../components/Button';
 import { LoadingState } from '../components/LoadingState';
 import { EmptyState } from '../components/EmptyState';
+import { useToast } from '../components/Toast';
 import { applyTextEdits, type PdfTextEdit } from '../services/pdf/textEdit';
 import { savePdfDocument } from '../services/storage';
 import { rasterizePdf } from '../services/pdf/raster';
@@ -29,6 +30,7 @@ type SelMeta = {
 export function PdfTextEditorScreen({ route, navigation }: RootScreenProps<'PdfTextEditor'>) {
   const theme = useTheme();
   const t = useT();
+  const toast = useToast();
   // Mount the pdf.js WebView only after the push animation completes.
   const ready = useDeferredMount();
   const { uri, name } = route.params;
@@ -47,7 +49,7 @@ export function PdfTextEditorScreen({ route, navigation }: RootScreenProps<'PdfT
   useEffect(() => {
     RNFS.readFile(uri.replace(/^file:\/\//, ''), 'base64')
       .then(d => setB64Data(d))
-      .catch(() => Alert.alert(t('pdfTextEditor.openFail'), t('pdfTextEditor.openFailMsg')));
+      .catch(() => toast({ variant: 'error', message: t('pdfTextEditor.openFailMsg') }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uri]);
 
@@ -75,7 +77,7 @@ export function PdfTextEditorScreen({ route, navigation }: RootScreenProps<'PdfT
       setColor('#111111');
     } else if (m.type === 'error') {
       setLoading(false);
-      Alert.alert(t('pdfTextEditor.renderFail'), m.message ?? t('pdfTextEditor.unknownError'));
+      toast({ variant: 'error', message: m.message ?? t('pdfTextEditor.unknownError') });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -94,7 +96,7 @@ export function PdfTextEditorScreen({ route, navigation }: RootScreenProps<'PdfT
 
   const save = async () => {
     if (edits.length === 0) {
-      Alert.alert(t('pdfTextEditor.noChanges'), t('pdfTextEditor.noChangesMsg'));
+      toast({ variant: 'info', message: t('pdfTextEditor.noChangesMsg') });
       return;
     }
     setSaving(true);
@@ -104,7 +106,7 @@ export function PdfTextEditorScreen({ route, navigation }: RootScreenProps<'PdfT
       navigation.reset({ index: 0, routes: [{ name: 'Tabs', state: { index: 1, routes: [{ name: 'Home' }, { name: 'Documents' }] } }] });
     } catch {
       setSaving(false);
-      Alert.alert(t('pdfTextEditor.saveFail'), t('pdfTextEditor.tryAgain'));
+      toast({ variant: 'error', message: t('pdfTextEditor.tryAgain') });
     }
   };
 
@@ -116,7 +118,7 @@ export function PdfTextEditorScreen({ route, navigation }: RootScreenProps<'PdfT
       if (pages.length) navigation.replace('PdfEditor', { pages, name });
     } catch {
       setSaving(false);
-      Alert.alert(t('pdfTextEditor.openFail'), t('pdfTextEditor.tryAgain'));
+      toast({ variant: 'error', message: t('pdfTextEditor.tryAgain') });
     }
   };
 

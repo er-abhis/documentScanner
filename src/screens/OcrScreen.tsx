@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
 import { Copy, Share2, FileText } from 'lucide-react-native';
 import { Screen } from '../components/Screen';
@@ -8,6 +8,7 @@ import { Text } from '../components/Text';
 import { Button } from '../components/Button';
 import { LoadingState } from '../components/LoadingState';
 import { EmptyState } from '../components/EmptyState';
+import { useToast } from '../components/Toast';
 import { ocrImage, ocrPdf } from '../services/ocr';
 import { buildTextPdf } from '../services/pdf/textPdf';
 import { savePdfDocument } from '../services/storage';
@@ -20,6 +21,7 @@ import type { RootScreenProps } from '../types/navigation';
 export function OcrScreen({ route, navigation }: RootScreenProps<'Ocr'>) {
   const theme = useTheme();
   const { t, lang } = useI18n();
+  const toast = useToast();
   const { uri, name, kind } = route.params;
 
   const [status, setStatus] = useState<'running' | 'ready' | 'empty' | 'error'>('running');
@@ -49,7 +51,7 @@ export function OcrScreen({ route, navigation }: RootScreenProps<'Ocr'>) {
 
   const copy = () => {
     Clipboard.setString(text);
-    Alert.alert(t('common.copied'), t('ocr.copiedMsg'));
+    toast({ variant: 'success', message: t('ocr.copiedMsg') });
   };
 
   const saveAsPdf = async () => {
@@ -60,7 +62,7 @@ export function OcrScreen({ route, navigation }: RootScreenProps<'Ocr'>) {
       navigation.reset({ index: 0, routes: [{ name: 'Tabs', state: { index: 1, routes: [{ name: 'Home' }, { name: 'Documents' }] } }] });
     } catch {
       setBusy(false);
-      Alert.alert(t('ocr.saveFail'), t('ocr.tryAgain'));
+      toast({ variant: 'error', message: t('ocr.tryAgain') });
     }
   };
 

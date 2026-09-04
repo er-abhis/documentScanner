@@ -3,12 +3,13 @@ import { FlatList, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useFocusEffect } from '@react-navigation/native';
 import { Copy, FileText, Pencil, ScanLine, SearchX, Share2, Trash2 } from 'lucide-react-native';
-import { Alert } from 'react-native';
 import { Screen } from '../components/Screen';
 import { Header } from '../components/Header';
 import { SearchBar } from '../components/SearchBar';
 import { DocumentCard } from '../components/DocumentCard';
 import { EmptyState } from '../components/EmptyState';
+import { useToast } from '../components/Toast';
+import { useDialog } from '../components/Dialog';
 import { ActionSheet, type SheetAction } from '../components/ActionSheet';
 import { RenameModal } from '../components/RenameModal';
 import {
@@ -27,6 +28,8 @@ import type { RootScreenProps } from '../types/navigation';
 
 export function DocumentsScreen({ navigation }: RootScreenProps<'Documents'>) {
   const { t, lang } = useI18n();
+  const toast = useToast();
+  const dialog = useDialog();
   const [docs, setDocs] = useState<DocumentMeta[]>([]);
   const [query, setQuery] = useState('');
   const [sheetFor, setSheetFor] = useState<DocumentMeta | null>(null);
@@ -53,15 +56,15 @@ export function DocumentsScreen({ navigation }: RootScreenProps<'Documents'>) {
   );
   const moreDoc = useCallback((d: DocumentMeta) => setSheetFor(d), []);
 
-  const confirmDelete = (doc: DocumentMeta) => {
-    Alert.alert(t('docs.deleteTitle'), `“${doc.name}” ${t('docs.deleteWarn')}`, [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.delete'),
-        style: 'destructive',
-        onPress: () => deleteDocument(doc.id).then(reload).catch(reload),
-      },
-    ]);
+  const confirmDelete = async (doc: DocumentMeta) => {
+    const ok = await dialog.confirm({
+      title: t('docs.deleteTitle'),
+      message: `“${doc.name}” ${t('docs.deleteWarn')}`,
+      confirmText: t('common.delete'),
+      cancelText: t('common.cancel'),
+      destructive: true,
+    });
+    if (ok) deleteDocument(doc.id).then(reload).catch(reload);
   };
 
   const shareDoc = async (doc: DocumentMeta) => {
@@ -70,7 +73,7 @@ export function DocumentsScreen({ navigation }: RootScreenProps<'Documents'>) {
       await sharePdf(uri, doc.name);
       reload();
     } catch {
-      Alert.alert(t('docs.shareFail'), t('docs.shareFailSub'));
+      toast({ variant: 'error', message: t('docs.shareFailSub') });
     }
   };
 

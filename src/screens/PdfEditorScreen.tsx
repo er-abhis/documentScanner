@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   Pen, Highlighter, Eraser, Undo2, Redo2, Eye, ChevronLeft, ChevronRight, Check,
@@ -12,6 +12,8 @@ import { Text } from '../components/Text';
 import { IconButton } from '../components/IconButton';
 import { Slider } from '../components/Slider';
 import { LoadingState } from '../components/LoadingState';
+import { useToast } from '../components/Toast';
+import { useDialog } from '../components/Dialog';
 import { TextInputModal } from '../components/TextInputModal';
 import { AnnotationCanvas, type CanvasTool } from '../components/annotate/AnnotationCanvas';
 import { flattenAnnotations } from '../services/annotate/flatten';
@@ -33,6 +35,8 @@ const SHAPE_TOOLS: { key: CanvasTool; icon: LucideIcon; labelKey: string }[] = [
 export function PdfEditorScreen({ route, navigation }: RootScreenProps<'PdfEditor'>) {
   const theme = useTheme();
   const t = useT();
+  const toast = useToast();
+  const dialog = useDialog();
   // Defer the Skia annotation canvas until the push animation completes.
   const ready = useDeferredMount();
   const params = route.params;
@@ -154,16 +158,20 @@ export function PdfEditorScreen({ route, navigation }: RootScreenProps<'PdfEdito
       navigation.reset({ index: 0, routes: [{ name: 'Tabs', state: { index: 1, routes: [{ name: 'Home' }, { name: 'Documents' }] } }] });
     } catch {
       setSaving(false);
-      Alert.alert(t('pdfEditor.saveFail'), t('pdfEditor.tryAgain'));
+      toast({ variant: 'error', message: t('pdfEditor.tryAgain') });
     }
   };
 
-  const back = () => {
+  const back = async () => {
     if (!dirty) return navigation.goBack();
-    Alert.alert(t('pdfEditor.discardTitle'), t('pdfEditor.discardMsg'), [
-      { text: t('pdfEditor.keepEditing'), style: 'cancel' },
-      { text: t('pdfEditor.discard'), style: 'destructive', onPress: () => navigation.goBack() },
-    ]);
+    const ok = await dialog.confirm({
+      title: t('pdfEditor.discardTitle'),
+      message: t('pdfEditor.discardMsg'),
+      confirmText: t('pdfEditor.discard'),
+      cancelText: t('pdfEditor.keepEditing'),
+      destructive: true,
+    });
+    if (ok) navigation.goBack();
   };
 
   if (loading || !ready) return (<Screen center><LoadingState /></Screen>);

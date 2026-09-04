@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Image, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -139,13 +139,18 @@ export function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
         </Pressable>
       </View>
 
-      {/* privacy badges */}
-      <View style={styles.badges}>
+      {/* privacy badges — single clean scrolling row, never a ragged wrap */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.badgesScroll}
+        contentContainerStyle={styles.badges}
+      >
         <Badge theme={theme} icon={Check} tint={theme.colors.success} label={t('home.bNoAccount')} />
         <Badge theme={theme} icon={Check} tint={theme.colors.success} label={t('home.bNoAds')} />
         <Badge theme={theme} icon={Check} tint={theme.colors.success} label={t('home.bNoTracking')} />
         <Badge theme={theme} icon={Wifi} tint={theme.colors.accent} label={t('home.bOffline')} />
-      </View>
+      </ScrollView>
 
       {upd.available && (
         <Pressable
@@ -358,7 +363,8 @@ const styles = StyleSheet.create({
   subRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
   proPill: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, height: 32, borderWidth: StyleSheet.hairlineWidth },
 
-  badges: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 18 },
+  badgesScroll: { marginBottom: 18, marginHorizontal: -4 },
+  badges: { flexDirection: 'row', gap: 8, paddingHorizontal: 4 },
   badge: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderWidth: StyleSheet.hairlineWidth },
 
   updateBar: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, marginBottom: 16, borderWidth: StyleSheet.hairlineWidth },

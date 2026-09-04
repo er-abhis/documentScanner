@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Alert, Linking, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Linking, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
 import { QrCode, Copy, Share2, ExternalLink, ScanLine, Lock, LockOpen } from 'lucide-react-native';
 import { Screen } from '../components/Screen';
 import { Header } from '../components/Header';
 import { Text } from '../components/Text';
 import { Button } from '../components/Button';
+import { useToast } from '../components/Toast';
 import { formatLabel, openableUrl } from '../services/barcode';
 import { isSecretQr, decryptSecret } from '../services/crypto/secretQr';
 import { shareText } from '../services/sharing';
@@ -22,6 +23,7 @@ import type { RootScreenProps } from '../types/navigation';
 export function QrResultScreen({ route, navigation }: RootScreenProps<'QrResult'>) {
   const theme = useTheme();
   const t = useT();
+  const toast = useToast();
   const { value, format } = route.params;
   const secret = isSecretQr(value);
 
@@ -48,12 +50,12 @@ export function QrResultScreen({ route, navigation }: RootScreenProps<'QrResult'
   const copy = () => {
     Clipboard.setString(shown);
     haptics.success();
-    Alert.alert(t('common.copied'));
+    toast({ variant: 'success', message: t('common.copied') });
   };
 
   const open = () => {
     if (!url) return;
-    Linking.openURL(url).catch(() => Alert.alert(t('qr.openFail'), url));
+    Linking.openURL(url).catch(() => toast({ variant: 'error', message: t('qr.openFail') }));
   };
 
   return (

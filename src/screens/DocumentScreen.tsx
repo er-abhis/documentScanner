@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Alert, FlatList, Image, Pressable, StyleSheet, View } from 'react-native';
+import { FlatList, Image, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useFocusEffect } from '@react-navigation/native';
 import { FileText, Share2, LayoutGrid, Pen } from 'lucide-react-native';
@@ -10,6 +10,7 @@ import { Button } from '../components/Button';
 import { IconButton } from '../components/IconButton';
 import { sharePdf } from '../services/sharing';
 import { LoadingState } from '../components/LoadingState';
+import { useToast } from '../components/Toast';
 import {
   generateDocumentPdf,
   listDocuments,
@@ -24,6 +25,7 @@ import type { RootScreenProps } from '../types/navigation';
 export function DocumentScreen({ route, navigation }: RootScreenProps<'Document'>) {
   const theme = useTheme();
   const { t, lang } = useI18n();
+  const toast = useToast();
   const { id } = route.params;
   const [doc, setDoc] = useState<DocumentMeta | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,7 +44,7 @@ export function DocumentScreen({ route, navigation }: RootScreenProps<'Document'
       navigation.navigate('PdfPreview', { uri, name: doc.name });
     } catch {
       setMakingPdf(false);
-      Alert.alert(t('doc.createFail'), t('docs.shareFailSub'));
+      toast({ variant: 'error', message: t('docs.shareFailSub') });
     }
   };
 
@@ -58,7 +60,7 @@ export function DocumentScreen({ route, navigation }: RootScreenProps<'Document'
       await sharePdf(uri, doc.name);
     } catch {
       setMakingPdf(false);
-      Alert.alert(t('docs.shareFail'), t('docs.shareFailSub'));
+      toast({ variant: 'error', message: t('docs.shareFailSub') });
     }
   };
 

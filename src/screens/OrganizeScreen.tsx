@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { Alert, Image, Pressable, StyleSheet, View } from 'react-native';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import ReorderableList, {
   reorderItems,
@@ -16,6 +16,8 @@ import { Button } from '../components/Button';
 import { IconButton } from '../components/IconButton';
 import { EmptyState } from '../components/EmptyState';
 import { LoadingState } from '../components/LoadingState';
+import { useToast } from '../components/Toast';
+import { useDialog } from '../components/Dialog';
 import { listDocuments, pageUris, reorganizeDocument, type DocumentMeta } from '../services/storage';
 import { useI18n, useT } from '../i18n';
 import { HIT_SLOP, useTheme } from '../theme';
@@ -26,6 +28,8 @@ type PageItem = { key: string; file: string; uri: string; rotation: number };
 export function OrganizeScreen({ route, navigation }: RootScreenProps<'Organize'>) {
   const theme = useTheme();
   const { t, lang } = useI18n();
+  const toast = useToast();
+  const dialog = useDialog();
   const { id } = route.params;
   const [pages, setPages] = useState<PageItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,22 +85,22 @@ export function OrganizeScreen({ route, navigation }: RootScreenProps<'Organize'
     markDirty();
   };
 
-  const remove = (key: string) => {
+  const remove = async (key: string) => {
     if (pages.length <= 1) {
-      Alert.alert(t('organize.cantRemoveTitle'), t('organize.cantRemoveMsg'));
+      toast({ variant: 'info', message: t('organize.cantRemoveMsg') });
       return;
     }
-    Alert.alert(t('organize.removeTitle'), t('organize.removeMsg'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('organize.remove'),
-        style: 'destructive',
-        onPress: () => {
-          setPages(p => p.filter(i => i.key !== key));
-          markDirty();
-        },
-      },
-    ]);
+    const ok = await dialog.confirm({
+      title: t('organize.removeTitle'),
+      message: t('organize.removeMsg'),
+      confirmText: t('organize.remove'),
+      cancelText: t('common.cancel'),
+      destructive: true,
+    });
+    if (ok) {
+      setPages(p => p.filter(i => i.key !== key));
+      markDirty();
+    }
   };
 
   const save = async () => {
@@ -109,16 +113,20 @@ export function OrganizeScreen({ route, navigation }: RootScreenProps<'Organize'
       navigation.goBack();
     } catch {
       setSaving(false);
-      Alert.alert(t('organize.saveFailTitle'), t('organize.tryAgain'));
+      toast({ variant: 'error', message: t('organize.tryAgain') });
     }
   };
 
-  const confirmBack = () => {
+  const confirmBack = async () => {
     if (!dirty.current) return navigation.goBack();
-    Alert.alert(t('organize.discardTitle'), t('organize.discardMsg'), [
-      { text: t('organize.keepEditing'), style: 'cancel' },
-      { text: t('organize.discard'), style: 'destructive', onPress: () => navigation.goBack() },
-    ]);
+    const ok = await dialog.confirm({
+      title: t('organize.discardTitle'),
+      message: t('organize.discardMsg'),
+      confirmText: t('organize.discard'),
+      cancelText: t('organize.keepEditing'),
+      destructive: true,
+    });
+    if (ok) navigation.goBack();
   };
 
   if (loading) {

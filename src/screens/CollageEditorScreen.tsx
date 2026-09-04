@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Skia, type SkImage } from '@shopify/react-native-skia';
 import {
   Images,
@@ -21,6 +21,8 @@ import { Button } from '../components/Button';
 import { IconButton } from '../components/IconButton';
 import { Slider } from '../components/Slider';
 import { LoadingState } from '../components/LoadingState';
+import { useToast } from '../components/Toast';
+import { useDialog } from '../components/Dialog';
 import { CollageCanvas } from '../components/collage/CollageCanvas';
 import { pickImages } from '../services/gallery';
 import { templateById } from '../services/collage/templates';
@@ -68,6 +70,8 @@ const FORMATS: { key: ImgFormat | 'pdf'; label: string }[] = [
 export function CollageEditorScreen({ route, navigation }: RootScreenProps<'CollageEditor'>) {
   const theme = useTheme();
   const t = useT();
+  const toast = useToast();
+  const dialog = useDialog();
   const template = templateById(route.params.templateId);
 
   const [project, setProject] = useState<CollageProject>(() => ({
@@ -159,7 +163,7 @@ export function CollageEditorScreen({ route, navigation }: RootScreenProps<'Coll
 
   const doExport = async (mode: 'save' | 'share') => {
     if (!hasPhotos) {
-      Alert.alert(t('collageEditor.addPhotoTitle'), t('collageEditor.addPhotoMsg'));
+      toast({ variant: 'info', message: t('collageEditor.addPhotoMsg') });
       return;
     }
     setBusy(true);
@@ -182,16 +186,20 @@ export function CollageEditorScreen({ route, navigation }: RootScreenProps<'Coll
       }
     } catch {
       setBusy(false);
-      Alert.alert(t('collageEditor.exportFailTitle'), t('collageEditor.exportFailMsg'));
+      toast({ variant: 'error', message: t('collageEditor.exportFailMsg') });
     }
   };
 
-  const back = () => {
+  const back = async () => {
     if (!hasPhotos) return navigation.goBack();
-    Alert.alert(t('collageEditor.discardTitle'), t('collageEditor.discardMsg'), [
-      { text: t('collageEditor.keepEditing'), style: 'cancel' },
-      { text: t('collageEditor.discard'), style: 'destructive', onPress: () => navigation.goBack() },
-    ]);
+    const ok = await dialog.confirm({
+      title: t('collageEditor.discardTitle'),
+      message: t('collageEditor.discardMsg'),
+      confirmText: t('collageEditor.discard'),
+      cancelText: t('collageEditor.keepEditing'),
+      destructive: true,
+    });
+    if (ok) navigation.goBack();
   };
 
   if (busy) {

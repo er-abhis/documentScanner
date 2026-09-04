@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Image, Pressable, StyleSheet, View } from 'react-native';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
 import RNFS from 'react-native-fs';
 import { Plus, Rows3, Columns3, Save, Share2, Image as ImageIcon, FileText } from 'lucide-react-native';
 import { Screen } from '../components/Screen';
@@ -10,6 +10,7 @@ import { Slider } from '../components/Slider';
 import { LoadingState } from '../components/LoadingState';
 import { EmptyState } from '../components/EmptyState';
 import { ActionSheet } from '../components/ActionSheet';
+import { useToast } from '../components/Toast';
 import { pickImages } from '../services/gallery';
 import { joinImages, type JoinDirection } from '../services/image/join';
 import { saveDocument, generateDocumentPdf } from '../services/storage';
@@ -36,6 +37,7 @@ const BACKGROUNDS = [
 export function JoinerScreen({ navigation }: RootScreenProps<'Joiner'>) {
   const theme = useTheme();
   const { t, lang } = useI18n();
+  const toast = useToast();
   const [uris, setUris] = useState<string[]>([]);
   const [direction, setDirection] = useState<JoinDirection>('vertical');
   const [spacing, setSpacing] = useState(16);
@@ -97,7 +99,7 @@ export function JoinerScreen({ navigation }: RootScreenProps<'Joiner'>) {
       });
     } catch {
       setBusy(false);
-      Alert.alert(t('joiner.saveFailTitle'), t('joiner.tryAgain'));
+      toast({ variant: 'error', message: t('joiner.tryAgain') });
     }
   };
 
@@ -112,7 +114,7 @@ export function JoinerScreen({ navigation }: RootScreenProps<'Joiner'>) {
         await shareImage(preview);
       }
     } catch {
-      Alert.alert(t('joiner.shareFailTitle'), t('joiner.tryAgain'));
+      toast({ variant: 'error', message: t('joiner.tryAgain') });
     } finally {
       setBusy(false);
     }

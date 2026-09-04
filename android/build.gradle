@@ -6,6 +6,11 @@ buildscript {
         targetSdkVersion = 36
         ndkVersion = "27.1.12297006"
         kotlinVersion = "2.2.0"
+        // react-native-vision-camera reads this via rootProject.ext (NOT
+        // gradle.properties) to decide whether to BUNDLE the ML Kit barcode
+        // model. Without it here the scanner falls back to an on-demand model
+        // that may never download → camera opens but never detects a QR.
+        VisionCamera_enableCodeScanner = true
     }
     repositories {
         google()

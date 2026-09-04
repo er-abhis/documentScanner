@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Switch, View } from 'react-native';
+import { Pressable, StyleSheet, Switch, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   ChevronRight, Info, ShieldCheck, Share2, Star, RefreshCw, DownloadCloud,
@@ -10,6 +10,8 @@ import { Screen } from '../components/Screen';
 import { Header } from '../components/Header';
 import { Card } from '../components/Card';
 import { Text } from '../components/Text';
+import { useToast } from '../components/Toast';
+import { useDialog } from '../components/Dialog';
 import { useTheme } from '../theme';
 import { useThemePref } from '../theme/ThemeProvider';
 import { useI18n } from '../i18n';
@@ -24,6 +26,8 @@ export function SettingsScreen({ navigation }: RootScreenProps<'Settings'>) {
   const theme = useTheme();
   const { preference, setPreference } = useThemePref();
   const { lang, setLang, t } = useI18n();
+  const toast = useToast();
+  const dialog = useDialog();
   const [autoUpdate, setAutoUpdate] = useState(false);
   const [checking, setChecking] = useState(false);
 
@@ -35,8 +39,12 @@ export function SettingsScreen({ navigation }: RootScreenProps<'Settings'>) {
     setChecking(true);
     const has = await checkForUpdate();
     setChecking(false);
-    Alert.alert(has ? 'Update available' : 'Up to date', has ? 'A new version is available. Download it now?' : 'You have the latest version.',
-      has ? [{ text: 'Later', style: 'cancel' }, { text: 'Update', onPress: () => startFlexibleUpdate(() => installFlexibleUpdate()).catch(() => {}) }] : undefined);
+    if (has) {
+      const ok = await dialog.confirm({ title: 'Update available', message: 'A new version is available. Download it now?', confirmText: 'Update', cancelText: 'Later' });
+      if (ok) startFlexibleUpdate(() => installFlexibleUpdate()).catch(() => {});
+    } else {
+      toast({ variant: 'info', message: 'You have the latest version.' });
+    }
   };
 
   const themeOpts: { key: ThemePref; label: string }[] = [

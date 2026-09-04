@@ -1,4 +1,4 @@
-import { Alert, Linking, Pressable, StyleSheet, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import LinearGradient from 'react-native-linear-gradient';
 import { ExternalLink, Coffee, Sparkles, Smartphone, ShieldCheck, Rocket } from 'lucide-react-native';
@@ -7,6 +7,7 @@ import { Screen } from '../components/Screen';
 import { Header } from '../components/Header';
 import { Text } from '../components/Text';
 import { Button } from '../components/Button';
+import { useToast } from '../components/Toast';
 import { useTheme } from '../theme';
 import { useI18n } from '../i18n';
 import { haptics } from '../lib/haptics';
@@ -26,9 +27,10 @@ const SKILLS = ['React Native', 'TypeScript', 'Android', 'iOS', 'Node.js', 'Skia
 export function AboutScreen({ navigation }: RootScreenProps<'About'>) {
   const theme = useTheme();
   const { t, lang } = useI18n();
+  const toast = useToast();
   const openLinkedIn = () => {
     haptics.light();
-    Linking.openURL(LINKEDIN).catch(() => Alert.alert('Couldn’t open link', LINKEDIN));
+    Linking.openURL(LINKEDIN).catch(() => toast({ variant: 'error', message: 'Couldn’t open link' }));
   };
 
   return (

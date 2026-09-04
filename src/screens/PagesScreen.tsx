@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Image, Pressable, StyleSheet, View } from 'react-native';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
 import ReorderableList, {
   reorderItems,
   useIsActive,
@@ -15,6 +15,8 @@ import { Button } from '../components/Button';
 import { EmptyState } from '../components/EmptyState';
 import { IconButton } from '../components/IconButton';
 import { LoadingState } from '../components/LoadingState';
+import { useToast } from '../components/Toast';
+import { useDialog } from '../components/Dialog';
 import { saveDocument } from '../services/storage';
 import { useDraft, type DraftPage } from '../state/draft';
 import { useI18n, useT } from '../i18n';
@@ -24,6 +26,8 @@ import type { RootScreenProps } from '../types/navigation';
 export function PagesScreen({ navigation }: RootScreenProps<'Pages'>) {
   const theme = useTheme();
   const { t, lang } = useI18n();
+  const toast = useToast();
+  const dialog = useDialog();
   const { pages, setPages, removePage, replacePage, clear } = useDraft();
   const [saving, setSaving] = useState(false);
 
@@ -39,7 +43,7 @@ export function PagesScreen({ navigation }: RootScreenProps<'Pages'>) {
       });
     } catch {
       setSaving(false);
-      Alert.alert(t('pages.saveFailTitle'), t('pages.tryAgain'));
+      toast({ variant: 'error', message: t('pages.tryAgain') });
     }
   };
 
@@ -47,25 +51,29 @@ export function PagesScreen({ navigation }: RootScreenProps<'Pages'>) {
     setPages(reorderItems(pages, from, to));
   };
 
-  const confirmRemove = (id: string) => {
+  const confirmRemove = async (id: string) => {
     if (pages.length <= 1) {
-      Alert.alert(t('pages.removeOnlyTitle'), t('pages.removeOnlyMsg'), [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('pages.discard'),
-          style: 'destructive',
-          onPress: () => {
-            removePage(id);
-            navigation.popToTop();
-          },
-        },
-      ]);
+      const ok = await dialog.confirm({
+        title: t('pages.removeOnlyTitle'),
+        message: t('pages.removeOnlyMsg'),
+        confirmText: t('pages.discard'),
+        cancelText: t('common.cancel'),
+        destructive: true,
+      });
+      if (ok) {
+        removePage(id);
+        navigation.popToTop();
+      }
       return;
     }
-    Alert.alert(t('pages.removeTitle'), t('pages.removeMsg'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('pages.remove'), style: 'destructive', onPress: () => removePage(id) },
-    ]);
+    const ok = await dialog.confirm({
+      title: t('pages.removeTitle'),
+      message: t('pages.removeMsg'),
+      confirmText: t('pages.remove'),
+      cancelText: t('common.cancel'),
+      destructive: true,
+    });
+    if (ok) removePage(id);
   };
 
   const edit = (page: DraftPage) =>

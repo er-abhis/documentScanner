@@ -16,6 +16,11 @@ import { haptics } from '../lib/haptics';
 import type { RootScreenProps } from '../types/navigation';
 
 const QR_SIZE = 230;
+// QR byte capacity maxes at ~2331 bytes (version 40, ECC level M). Past that the
+// underlying qrcode lib THROWS during render — which would crash the screen —
+// so we refuse oversized input up front. 2000 leaves headroom for multi-byte
+// UTF-8 (emoji count as 2-4 bytes each).
+const MAX_QR_CHARS = 2000;
 
 /**
  * Generate a QR from typed text. In `secret` mode the text is encrypted
@@ -39,7 +44,12 @@ export function CreateQrScreen({ route, navigation }: RootScreenProps<'CreateQr'
   const generate = () => {
     if (!canGenerate) return;
     try {
-      setQrValue(secret ? encryptSecret(text.trim(), password) : text.trim());
+      const value = secret ? encryptSecret(text.trim(), password) : text.trim();
+      if (value.length > MAX_QR_CHARS) {
+        toast({ variant: 'error', message: t('qr.tooLong') });
+        return;
+      }
+      setQrValue(value);
       haptics.success();
     } catch {
       toast({ variant: 'error', message: t('qr.genFail') });
@@ -56,7 +66,14 @@ export function CreateQrScreen({ route, navigation }: RootScreenProps<'CreateQr'
     new Promise<string>((resolve, reject) => {
       const ref = svgRef.current;
       if (!ref) return reject(new Error('no_ref'));
-      ref.toDataURL(resolve);
+      // toDataURL is fire-and-forget; if the lib never calls back (unmount, GPU
+      // hiccup) the Promise would hang and leave the button stuck in `busy`.
+      // Time it out so save/share always resolve.
+      const timer = setTimeout(() => reject(new Error('timeout')), 8000);
+      ref.toDataURL((b64: string) => {
+        clearTimeout(timer);
+        b64 ? resolve(b64) : reject(new Error('empty'));
+      });
     });
 
   const save = async () => {

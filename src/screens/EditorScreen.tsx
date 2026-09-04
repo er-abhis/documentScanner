@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Alert,
   Image,
   Pressable,
   ScrollView,
@@ -30,6 +29,7 @@ import { Text } from '../components/Text';
 import { Button } from '../components/Button';
 import { Slider } from '../components/Slider';
 import { LoadingState } from '../components/LoadingState';
+import { useToast } from '../components/Toast';
 import { warpDocument, type Quad } from '../services/image/perspective';
 import {
   FILTERS,
@@ -55,6 +55,7 @@ function fit(natW: number, natH: number, boxW: number, boxH: number) {
 export function EditorScreen({ route, navigation }: RootScreenProps<'Editor'>) {
   const theme = useTheme();
   const t = useT();
+  const toast = useToast();
   const { uri, onDone } = route.params;
 
   const [nat, setNat] = useState<{ w: number; h: number } | null>(null);
@@ -137,7 +138,7 @@ export function EditorScreen({ route, navigation }: RootScreenProps<'Editor'>) {
       navigation.goBack();
     } catch {
       setBusy(false);
-      Alert.alert(t('editor.applyFail'), t('editor.tryAgain'));
+      toast({ variant: 'error', message: t('editor.tryAgain') });
     }
   };
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Image, Linking, Pressable, StyleSheet, View } from 'react-native';
+import { Image, Linking, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import LinearGradient from 'react-native-linear-gradient';
 import Clipboard from '@react-native-clipboard/clipboard';
@@ -9,6 +9,7 @@ import { Screen } from '../components/Screen';
 import { Header } from '../components/Header';
 import { Text } from '../components/Text';
 import { Button } from '../components/Button';
+import { useToast } from '../components/Toast';
 import { useTheme } from '../theme';
 import { useT } from '../i18n';
 import { haptics } from '../lib/haptics';
@@ -25,6 +26,7 @@ const PAYPAL_TIERS = [
 export function CoffeeScreen({ navigation }: RootScreenProps<'Coffee'>) {
   const theme = useTheme();
   const t = useT();
+  const toast = useToast();
   const [tab, setTab] = useState<'paypal' | 'upi'>('upi');
   const [copied, setCopied] = useState(false);
 
@@ -34,7 +36,7 @@ export function CoffeeScreen({ navigation }: RootScreenProps<'Coffee'>) {
     { icon: Heart, title: t('coffee.reason3Title'), sub: t('coffee.reason3Sub') },
   ];
 
-  const open = (url: string) => Linking.openURL(url).catch(() => Alert.alert('Couldn’t open link', url));
+  const open = (url: string) => Linking.openURL(url).catch(() => toast({ variant: 'error', message: 'Couldn’t open link' }));
 
   const copyUpi = () => {
     Clipboard.setString(UPI_ID);
