@@ -228,6 +228,8 @@ export const STRINGS = {
     'qr.wrongPassword': 'Wrong password or corrupted QR',
     'qr.decrypt': 'Decrypt',
     'qr.decrypted': 'Decrypted message',
+    'qr.showPassword': 'Show password',
+    'qr.hidePassword': 'Hide password',
 
     'editor.title': 'Edit Page',
     'editor.crop': 'Crop',
@@ -720,6 +722,8 @@ export const STRINGS = {
     'qr.wrongPassword': 'गलत पासवर्ड या खराब QR',
     'qr.decrypt': 'डिक्रिप्ट करें',
     'qr.decrypted': 'डिक्रिप्ट किया संदेश',
+    'qr.showPassword': 'पासवर्ड दिखाएं',
+    'qr.hidePassword': 'पासवर्ड छुपाएं',
 
     'editor.title': 'पेज संपादित करें',
     'editor.crop': 'क्रॉप',

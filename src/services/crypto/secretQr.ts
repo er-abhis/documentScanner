@@ -17,7 +17,10 @@ const MARKER = 'SQR1:';
 const SALT_LEN = 16;
 const NONCE_LEN = 12;
 const KEY_LEN = 32; // AES-256
-const ITERATIONS = 150_000;
+// PBKDF2 runs in pure JS on Hermes (no native crypto), so every iteration
+// costs real time on the JS thread. 100k keeps brute-forcing a scanned QR's
+// password expensive while staying well under a second on-device.
+const ITERATIONS = 100_000;
 
 const deriveKey = (password: string, salt: Uint8Array) =>
   pbkdf2(sha256, utf8ToBytes(password), salt, { c: ITERATIONS, dkLen: KEY_LEN });

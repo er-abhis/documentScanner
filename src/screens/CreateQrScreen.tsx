@@ -7,6 +7,7 @@ import { Screen } from '../components/Screen';
 import { Header } from '../components/Header';
 import { Text } from '../components/Text';
 import { Button } from '../components/Button';
+import { PasswordInput } from '../components/PasswordInput';
 import { useToast } from '../components/Toast';
 import { saveQrImage, shareQrImage } from '../services/qr';
 import { encryptSecret } from '../services/crypto/secretQr';
@@ -42,18 +43,26 @@ export function CreateQrScreen({ route, navigation }: RootScreenProps<'CreateQr'
   const canGenerate = text.trim().length > 0 && (!secret || password.length > 0);
 
   const generate = () => {
-    if (!canGenerate) return;
-    try {
-      const value = secret ? encryptSecret(text.trim(), password) : text.trim();
-      if (value.length > MAX_QR_CHARS) {
-        toast({ variant: 'error', message: t('qr.tooLong') });
-        return;
+    if (!canGenerate || busy) return;
+    // Secret-QR key derivation (PBKDF2) blocks the JS thread for ~1s on Hermes.
+    // Show the spinner first, then defer a tick so it actually paints before the
+    // heavy work starts — otherwise the button looks frozen mid-tap.
+    setBusy(true);
+    setTimeout(() => {
+      try {
+        const value = secret ? encryptSecret(text.trim(), password) : text.trim();
+        if (value.length > MAX_QR_CHARS) {
+          toast({ variant: 'error', message: t('qr.tooLong') });
+          return;
+        }
+        setQrValue(value);
+        haptics.success();
+      } catch {
+        toast({ variant: 'error', message: t('qr.genFail') });
+      } finally {
+        setBusy(false);
       }
-      setQrValue(value);
-      haptics.success();
-    } catch {
-      toast({ variant: 'error', message: t('qr.genFail') });
-    }
+    }, 16);
   };
 
   const reset = () => {
@@ -113,7 +122,7 @@ export function CreateQrScreen({ route, navigation }: RootScreenProps<'CreateQr'
         {qrValue ? (
           <>
             <View style={styles.qrCard}>
-              <QRCode value={qrValue} size={QR_SIZE} getRef={c => (svgRef.current = c)} />
+              <QRCode value={qrValue} size={QR_SIZE} backgroundColor="#FFFFFF" quietZone={16} getRef={c => (svgRef.current = c)} />
             </View>
             {secret ? (
               <View style={[styles.lockNote, { backgroundColor: theme.colors.brandSubtle, borderRadius: theme.radius.md }]}>
@@ -144,13 +153,11 @@ export function CreateQrScreen({ route, navigation }: RootScreenProps<'CreateQr'
             {secret ? (
               <>
                 <Text variant="caption" color="textSecondary" style={styles.label}>{t('qr.password')}</Text>
-                <TextInput
+                <PasswordInput
                   value={password}
                   onChangeText={setPassword}
-                  secureTextEntry
                   placeholder={t('qr.passwordPlaceholder')}
-                  placeholderTextColor={theme.colors.textTertiary}
-                  style={[styles.pwInput, { color: theme.colors.text, backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderRadius: theme.radius.md }]}
+                  onSubmitEditing={generate}
                 />
               </>
             ) : null}
@@ -171,7 +178,7 @@ export function CreateQrScreen({ route, navigation }: RootScreenProps<'CreateQr'
             </View>
           </>
         ) : (
-          <Button title={t('qr.generate')} icon={secret ? Lock : Sparkles} disabled={!canGenerate} onPress={generate} />
+          <Button title={t('qr.generate')} icon={secret ? Lock : Sparkles} loading={busy} disabled={!canGenerate} onPress={generate} />
         )}
       </View>
     </Screen>
@@ -183,8 +190,7 @@ const styles = StyleSheet.create({
   hintRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderWidth: StyleSheet.hairlineWidth, marginBottom: 18 },
   label: { marginBottom: 6, marginLeft: 2 },
   input: { minHeight: 120, padding: 14, fontSize: 16, lineHeight: 22, textAlignVertical: 'top', borderWidth: StyleSheet.hairlineWidth },
-  pwInput: { height: 52, paddingHorizontal: 14, fontSize: 16, borderWidth: StyleSheet.hairlineWidth },
-  qrCard: { alignSelf: 'center', backgroundColor: '#FFFFFF', padding: 20, borderRadius: 20, marginTop: 16, marginBottom: 16 },
+  qrCard: { alignSelf: 'center', backgroundColor: '#FFFFFF', padding: 20, borderRadius: 20, marginTop: 16, marginBottom: 16, borderWidth: 4, borderColor: '#E5E7EB' },
   lockNote: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'center', paddingHorizontal: 14, paddingVertical: 10, maxWidth: QR_SIZE + 40 },
   actions: { gap: 10, paddingTop: 10 },
   row: { flexDirection: 'row' },
