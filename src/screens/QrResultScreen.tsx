@@ -60,7 +60,13 @@ export function QrResultScreen({ route, navigation }: RootScreenProps<'QrResult'
         setRevealed(decryptSecret(value, password));
         setError(false);
         haptics.success();
-      } catch {
+      } catch (e) {
+        // ponytail: temp diagnostic — tells us WHICH stage failed on-device.
+        // 'corrupt' = truncated/short payload; GCM error = wrong password OR a
+        // QR made by a different build (marker/iteration skew). Remove once root
+        // cause is confirmed.
+        console.warn('[secretQr] decrypt failed:', (e as Error)?.message,
+          '| scanned len:', value.length, 'prefix:', value.slice(0, 8));
         setError(true);
         haptics.warning();
         shake();
