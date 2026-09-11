@@ -1,7 +1,46 @@
 import { gcm } from '@noble/ciphers/aes.js';
-import { randomBytes, utf8ToBytes, bytesToUtf8, concatBytes } from '@noble/ciphers/utils.js';
+import { randomBytes, concatBytes } from '@noble/ciphers/utils.js';
 import { pbkdf2 } from '@noble/hashes/pbkdf2.js';
 import { sha256 } from '@noble/hashes/sha2.js';
+
+// @noble's utf8ToBytes/bytesToUtf8 use TextEncoder/TextDecoder. Hermes ships
+// TextEncoder but NOT TextDecoder, so bytesToUtf8 throws "Property
+// 'TextDecoder' doesn't exist" on-device — decryption of a VALID payload with
+// the CORRECT password would fail and look like a wrong-password/corrupt error.
+// Keep the string<->bytes codec self-contained (same reason as the base64 below).
+export function utf8ToBytes(str: string): Uint8Array {
+  const out: number[] = [];
+  for (let i = 0; i < str.length; i++) {
+    let c = str.charCodeAt(i);
+    // Combine a surrogate pair into a single code point.
+    if (c >= 0xd800 && c <= 0xdbff && i + 1 < str.length) {
+      const c2 = str.charCodeAt(i + 1);
+      if (c2 >= 0xdc00 && c2 <= 0xdfff) { c = 0x10000 + ((c - 0xd800) << 10) + (c2 - 0xdc00); i++; }
+    }
+    if (c < 0x80) out.push(c);
+    else if (c < 0x800) out.push(0xc0 | (c >> 6), 0x80 | (c & 0x3f));
+    else if (c < 0x10000) out.push(0xe0 | (c >> 12), 0x80 | ((c >> 6) & 0x3f), 0x80 | (c & 0x3f));
+    else out.push(0xf0 | (c >> 18), 0x80 | ((c >> 12) & 0x3f), 0x80 | ((c >> 6) & 0x3f), 0x80 | (c & 0x3f));
+  }
+  return new Uint8Array(out);
+}
+
+export function bytesToUtf8(bytes: Uint8Array): string {
+  let out = '';
+  for (let i = 0; i < bytes.length; ) {
+    const b0 = bytes[i++];
+    let cp: number;
+    if (b0 < 0x80) cp = b0;
+    else if (b0 < 0xe0) cp = ((b0 & 0x1f) << 6) | (bytes[i++] & 0x3f);
+    else if (b0 < 0xf0) cp = ((b0 & 0x0f) << 12) | ((bytes[i++] & 0x3f) << 6) | (bytes[i++] & 0x3f);
+    else cp = ((b0 & 0x07) << 18) | ((bytes[i++] & 0x3f) << 12) | ((bytes[i++] & 0x3f) << 6) | (bytes[i++] & 0x3f);
+    if (cp > 0xffff) {
+      cp -= 0x10000;
+      out += String.fromCharCode(0xd800 + (cp >> 10), 0xdc00 + (cp & 0x3ff));
+    } else out += String.fromCharCode(cp);
+  }
+  return out;
+}
 
 /**
  * Password-protected QR payloads. Uses AES-256-GCM (authenticated encryption)
@@ -17,6 +56,20 @@ import { sha256 } from '@noble/hashes/sha2.js';
  * password" on the right password). SQR1 is the pre-versioning format that
  * omitted the count; we still read it by trying the historical dev values.
  */
+/**
+ * Why decryption failed. `corrupt` = the payload is structurally broken
+ * (truncated, bad base64, impossible iteration count) — the QR itself is bad.
+ * `auth` = the bytes are well-formed but GCM authentication failed — a wrong
+ * password (or tampering). Callers MUST show different messages: an auth failure
+ * is NOT a corrupt QR.
+ */
+export class DecryptError extends Error {
+  constructor(public kind: 'corrupt' | 'auth', message?: string) {
+    super(message ?? kind);
+    this.name = 'DecryptError';
+  }
+}
+
 const MARKER = 'SQR2:';
 const LEGACY_MARKER = 'SQR1:';
 const SALT_LEN = 16;
@@ -65,21 +118,26 @@ export function decryptSecret(value: string, password: string): string {
   if (value.startsWith(LEGACY_MARKER)) return decryptLegacy(value, password);
 
   const packed = base64ToBytes(value.slice(MARKER.length));
-  if (packed.length <= ITER_LEN + SALT_LEN + NONCE_LEN) throw new Error('corrupt');
+  if (packed.length <= ITER_LEN + SALT_LEN + NONCE_LEN) throw new DecryptError('corrupt');
   const iterations =
     packed[0] * 0x1000000 + (packed[1] << 16) + (packed[2] << 8) + packed[3];
-  if (iterations < MIN_ITER || iterations > MAX_ITER) throw new Error('corrupt');
+  if (iterations < MIN_ITER || iterations > MAX_ITER) throw new DecryptError('corrupt');
   const salt = packed.slice(ITER_LEN, ITER_LEN + SALT_LEN);
   const nonce = packed.slice(ITER_LEN + SALT_LEN, ITER_LEN + SALT_LEN + NONCE_LEN);
   const ct = packed.slice(ITER_LEN + SALT_LEN + NONCE_LEN);
   const key = deriveKey(password, salt, iterations);
-  return bytesToUtf8(gcm(key, nonce).decrypt(ct));
+  try {
+    return bytesToUtf8(gcm(key, nonce).decrypt(ct));
+  } catch {
+    // Structure was valid; GCM tag rejected it -> wrong password or tampering.
+    throw new DecryptError('auth');
+  }
 }
 
 /** Read a pre-versioning SQR1 payload by trying each historical iteration count. */
 function decryptLegacy(value: string, password: string): string {
   const packed = base64ToBytes(value.slice(LEGACY_MARKER.length));
-  if (packed.length <= SALT_LEN + NONCE_LEN) throw new Error('corrupt');
+  if (packed.length <= SALT_LEN + NONCE_LEN) throw new DecryptError('corrupt');
   const salt = packed.slice(0, SALT_LEN);
   const nonce = packed.slice(SALT_LEN, SALT_LEN + NONCE_LEN);
   const ct = packed.slice(SALT_LEN + NONCE_LEN);
@@ -90,13 +148,14 @@ function decryptLegacy(value: string, password: string): string {
       // GCM auth failed for this count — try the next, else fall through to throw.
     }
   }
-  throw new Error('wrong password');
+  // Structure was fine but no historical count authenticated -> wrong password.
+  throw new DecryptError('auth');
 }
 
 // --- base64 for Uint8Array (Hermes has no Buffer; keep encoding self-contained) ---
 const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
-function bytesToBase64(bytes: Uint8Array): string {
+export function bytesToBase64(bytes: Uint8Array): string {
   let out = '';
   for (let i = 0; i < bytes.length; i += 3) {
     const a = bytes[i];
@@ -109,7 +168,7 @@ function bytesToBase64(bytes: Uint8Array): string {
   return out;
 }
 
-function base64ToBytes(str: string): Uint8Array {
+export function base64ToBytes(str: string): Uint8Array {
   const clean = str.replace(/[^A-Za-z0-9+/]/g, '');
   const len = Math.floor((clean.length * 3) / 4);
   const out = new Uint8Array(len);

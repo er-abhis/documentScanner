@@ -10,7 +10,7 @@ import { Button } from '../components/Button';
 import { PasswordInput } from '../components/PasswordInput';
 import { useToast } from '../components/Toast';
 import { formatLabel, openableUrl } from '../services/barcode';
-import { isSecretQr, decryptSecret } from '../services/crypto/secretQr';
+import { isSecretQr, decryptSecret, DecryptError } from '../services/crypto/secretQr';
 import { shareText } from '../services/sharing';
 import { useTheme } from '../theme';
 import { useT } from '../i18n';
@@ -31,7 +31,9 @@ export function QrResultScreen({ route, navigation }: RootScreenProps<'QrResult'
 
   const [password, setPassword] = useState('');
   const [revealed, setRevealed] = useState<string | null>(null);
-  const [error, setError] = useState(false);
+  // null = no error; otherwise which message to show. A wrong password is an
+  // 'auth' error, NOT 'corrupt' — a corrupt QR is genuinely unreadable data.
+  const [error, setError] = useState<'auth' | 'corrupt' | null>(null);
   const [busy, setBusy] = useState(false);
   const shakeX = useSharedValue(0);
   const shakeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: shakeX.value }] }));
@@ -58,16 +60,13 @@ export function QrResultScreen({ route, navigation }: RootScreenProps<'QrResult'
     setTimeout(() => {
       try {
         setRevealed(decryptSecret(value, password));
-        setError(false);
+        setError(null);
         haptics.success();
       } catch (e) {
-        // ponytail: temp diagnostic — tells us WHICH stage failed on-device.
-        // 'corrupt' = truncated/short payload; GCM error = wrong password OR a
-        // QR made by a different build (marker/iteration skew). Remove once root
-        // cause is confirmed.
-        console.warn('[secretQr] decrypt failed:', (e as Error)?.message,
-          '| scanned len:', value.length, 'prefix:', value.slice(0, 8));
-        setError(true);
+        // A corrupt payload is unreadable no matter the password; an auth failure
+        // means the password is wrong (or the QR was tampered). Surface each
+        // distinctly — never call a wrong password a "corrupted QR".
+        setError(e instanceof DecryptError && e.kind === 'corrupt' ? 'corrupt' : 'auth');
         haptics.warning();
         shake();
       } finally {
@@ -106,16 +105,16 @@ export function QrResultScreen({ route, navigation }: RootScreenProps<'QrResult'
           <Animated.View entering={FadeInDown.springify().damping(16).stiffness(160)} style={[styles.lockBox, shakeStyle]}>
             <PasswordInput
               value={password}
-              onChangeText={txt => { setPassword(txt); setError(false); }}
+              onChangeText={txt => { setPassword(txt); setError(null); }}
               autoFocus
-              error={error}
+              error={error !== null}
               placeholder={t('qr.enterPassword')}
               onSubmitEditing={decrypt}
             />
             {error ? (
               <View style={[styles.errRow, { backgroundColor: theme.colors.dangerSubtle, borderRadius: theme.radius.md }]}>
                 <ShieldAlert size={15} color={theme.colors.danger} />
-                <Text variant="caption" color="danger" style={styles.flex1}>{t('qr.wrongPassword')}</Text>
+                <Text variant="caption" color="danger" style={styles.flex1}>{t(error === 'corrupt' ? 'qr.corruptQr' : 'qr.wrongPassword')}</Text>
               </View>
             ) : null}
           </Animated.View>
