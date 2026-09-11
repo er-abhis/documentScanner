@@ -26,6 +26,9 @@ export type RootStackParamList = {
   CollageStudio: undefined;
   CollageEditor: { templateId: string };
   Convert: undefined;
+  IdPhoto: undefined;
+  Exif: undefined;
+  ColorPicker: undefined;
   Document: { id: string };
   Organize: { id: string };
   // edit an app document by id, OR external/rasterized pages by uri list

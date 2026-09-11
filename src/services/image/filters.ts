@@ -96,7 +96,13 @@ export type FilterKey =
   | 'warm'
   | 'cool'
   | 'vivid'
-  | 'sepia';
+  | 'sepia'
+  | 'clarity'
+  | 'fade'
+  | 'noir'
+  | 'punch'
+  | 'matte'
+  | 'chrome';
 
 export const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'original', label: 'Original' },
@@ -104,12 +110,18 @@ export const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'document', label: 'Document' },
   { key: 'color', label: 'Color' },
   { key: 'enhanced', label: 'Enhanced' },
-  { key: 'grayscale', label: 'Grayscale' },
-  { key: 'bw', label: 'B & W' },
-  { key: 'receipt', label: 'Receipt' },
+  { key: 'clarity', label: 'Clarity' },
+  { key: 'punch', label: 'Punch' },
+  { key: 'vivid', label: 'Vivid' },
   { key: 'warm', label: 'Warm' },
   { key: 'cool', label: 'Cool' },
-  { key: 'vivid', label: 'Vivid' },
+  { key: 'fade', label: 'Fade' },
+  { key: 'matte', label: 'Matte' },
+  { key: 'chrome', label: 'Chrome' },
+  { key: 'grayscale', label: 'Grayscale' },
+  { key: 'bw', label: 'B & W' },
+  { key: 'noir', label: 'Noir' },
+  { key: 'receipt', label: 'Receipt' },
   { key: 'sepia', label: 'Sepia' },
 ];
 
@@ -137,6 +149,18 @@ function base(key: FilterKey): ColorMatrix {
       return compose(saturation(1.5), compose(contrast(1.22), brightness(0.02)));
     case 'sepia':
       return compose(contrast(1.1), sepia());
+    case 'clarity':
+      return compose(saturation(1.1), compose(contrast(1.3), brightness(0.02)));
+    case 'fade':
+      return compose(saturation(0.85), compose(contrast(0.85), brightness(0.08)));
+    case 'noir':
+      return compose(contrast(2.4), grayscale());
+    case 'punch':
+      return compose(saturation(1.6), compose(contrast(1.3), brightness(0.01)));
+    case 'matte':
+      return compose(saturation(0.9), compose(temperature(0.05), contrast(0.9)));
+    case 'chrome':
+      return compose(saturation(1.3), compose(temperature(-0.06), contrast(1.15)));
     case 'original':
     default:
       return IDENTITY;
@@ -144,11 +168,22 @@ function base(key: FilterKey): ColorMatrix {
 }
 
 /**
- * Final matrix = user brightness/contrast on top of the chosen filter.
- * @param b normalized -1..1  @param c normalized -1..1
+ * Final matrix = user adjustments on top of the chosen filter, applied in a
+ * predictable order: filter -> warmth -> saturation -> brightness -> contrast.
+ * All slider args are normalized -1..1 (0 = neutral).
  */
-export function buildMatrix(key: FilterKey, b: number, c: number): ColorMatrix {
+export function buildMatrix(
+  key: FilterKey,
+  b: number,
+  c: number,
+  sat = 0,
+  warmth = 0,
+): ColorMatrix {
   const bOffset = b * 0.4;
   const cFactor = Math.max(0.2, 1 + c); // -1..1 -> 0..2
-  return compose(contrast(cFactor), compose(brightness(bOffset), base(key)));
+  const satFactor = Math.max(0, 1 + sat); // -1..1 -> 0..2 (0 = grayscale)
+  let m = base(key);
+  if (warmth !== 0) m = compose(temperature(warmth * 0.3), m);
+  if (sat !== 0) m = compose(saturation(satFactor), m);
+  return compose(contrast(cFactor), compose(brightness(bOffset), m));
 }

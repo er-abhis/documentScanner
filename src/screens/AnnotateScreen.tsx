@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import {
   Pen, Highlighter, Eraser, Undo2, Redo2, Check,
-  Type, Square, Circle, Minus, MoveUpRight,
+  Type, Square, Circle, Minus, MoveUpRight, EyeOff,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { Screen } from '../components/Screen';
@@ -15,7 +15,7 @@ import { useDialog } from '../components/Dialog';
 import { TextInputModal } from '../components/TextInputModal';
 import { AnnotationCanvas, type CanvasTool } from '../components/annotate/AnnotationCanvas';
 import { flattenAnnotations } from '../services/annotate/flatten';
-import { PEN_COLORS, HIGHLIGHT_COLORS, type Annotation, type Pt } from '../services/annotate/types';
+import { PEN_COLORS, HIGHLIGHT_COLORS, type Annotation, type Pt, type RedactMode } from '../services/annotate/types';
 import { HIT_SLOP, useTheme } from '../theme';
 import { useT } from '../i18n';
 import type { StringKey } from '../i18n/strings';
@@ -43,6 +43,7 @@ export function AnnotateScreen({ route, navigation }: RootScreenProps<'Annotate'
   const rerender = () => force(n => n + 1);
 
   const [tool, setTool] = useState<CanvasTool>('pen');
+  const [redactMode, setRedactMode] = useState<RedactMode>('solid');
   const [drawColor, setDrawColor] = useState(PEN_COLORS[0]);
   const [hiColor, setHiColor] = useState(HIGHLIGHT_COLORS[0]);
   const [penSize, setPenSize] = useState(6);
@@ -66,7 +67,7 @@ export function AnnotateScreen({ route, navigation }: RootScreenProps<'Annotate'
       const r = eraseSize / 1000;
       let hit = false;
       if (a.kind === 'stroke') hit = a.points.some(p => Math.hypot(p.x - pt.x, p.y - pt.y) <= r + a.width);
-      else if (a.kind === 'shape') {
+      else if (a.kind === 'shape' || a.kind === 'redact') {
         hit = pt.x >= Math.min(a.a.x, a.b.x) - r && pt.x <= Math.max(a.a.x, a.b.x) + r && pt.y >= Math.min(a.a.y, a.b.y) - r && pt.y <= Math.max(a.a.y, a.b.y) + r;
       } else hit = pt.x >= a.x - r && pt.x <= a.x + a.size * 6 && pt.y >= a.y - r && pt.y <= a.y + a.size * 1.5;
       if (hit) { setAnns(anns.filter((_, idx) => idx !== i)); return; }
@@ -112,7 +113,8 @@ export function AnnotateScreen({ route, navigation }: RootScreenProps<'Annotate'
 
   const isHi = tool === 'highlight';
   const isText = tool === 'text';
-  const showColors = tool !== 'erase';
+  const isRedact = tool === 'redact';
+  const showColors = tool !== 'erase' && !isRedact;
   const color = isHi ? hiColor : drawColor;
   const setColor = isHi ? setHiColor : setDrawColor;
   const colors = isHi ? HIGHLIGHT_COLORS : PEN_COLORS;
@@ -128,7 +130,7 @@ export function AnnotateScreen({ route, navigation }: RootScreenProps<'Annotate'
       </View>
 
       <View style={[styles.canvas, { backgroundColor: theme.colors.surfaceSunken }]}>
-        <AnnotationCanvas uri={uri} annotations={anns} tool={tool} color={color} width={width} opacity={opacity}
+        <AnnotationCanvas uri={uri} annotations={anns} tool={tool} color={color} width={width} opacity={opacity} redactMode={redactMode}
           onCommit={commit} onErase={eraseAt} onTextPlace={pt => setTextModal({ mode: 'new', pt })}
           onTextSelect={id => { const t = anns.find(a => a.id === id); if (t && t.kind === 'text') setTextModal({ mode: 'edit', id, initial: t.text }); }}
           onTextMove={moveText} />
@@ -143,14 +145,39 @@ export function AnnotateScreen({ route, navigation }: RootScreenProps<'Annotate'
             ))}
           </View>
         )}
-        <View style={styles.sliderWrap}>
-          <Slider label={tool === 'erase' ? t('annotate.eraser') : isText ? t('annotate.textSize') : t('annotate.size')} value={size} min={isText ? 16 : 2} max={isText ? 96 : 40} onChange={v => setSize(Math.round(v))} format={v => `${Math.round(v)}`} />
-        </View>
+        {isRedact ? (
+          <View style={styles.redactModes}>
+            {(['solid', 'blur', 'pixel'] as RedactMode[]).map(m => (
+              <Pressable
+                key={m}
+                onPress={() => setRedactMode(m)}
+                accessibilityRole="button"
+                style={[
+                  styles.redactChip,
+                  {
+                    borderColor: redactMode === m ? theme.colors.brand : theme.colors.border,
+                    borderWidth: redactMode === m ? 2 : StyleSheet.hairlineWidth,
+                    borderRadius: theme.radius.md,
+                  },
+                ]}
+              >
+                <Text variant="callout" color={redactMode === m ? 'brand' : 'textSecondary'}>
+                  {t(`annotate.redact.${m}` as StringKey)}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : (
+          <View style={styles.sliderWrap}>
+            <Slider label={tool === 'erase' ? t('annotate.eraser') : isText ? t('annotate.textSize') : t('annotate.size')} value={size} min={isText ? 16 : 2} max={isText ? 96 : 40} onChange={v => setSize(Math.round(v))} format={v => `${Math.round(v)}`} />
+          </View>
+        )}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tools}>
           <ToolBtn active={isText} icon={Type} label={t('annotate.text')} onPress={() => setTool('text')} />
           <ToolBtn active={tool === 'pen'} icon={Pen} label={t('annotate.pen')} onPress={() => setTool('pen')} />
           <ToolBtn active={isHi} icon={Highlighter} label={t('annotate.marker')} onPress={() => setTool('highlight')} />
           {SHAPE_TOOLS.map(s => (<ToolBtn key={s.key} active={tool === s.key} icon={s.icon} label={t(s.labelKey)} onPress={() => setTool(s.key)} />))}
+          <ToolBtn active={isRedact} icon={EyeOff} label={t('annotate.redact')} onPress={() => setTool('redact')} />
           <ToolBtn active={tool === 'erase'} icon={Eraser} label={t('annotate.erase')} onPress={() => setTool('erase')} />
           <View style={styles.divider} />
           <ToolBtn active={false} icon={Undo2} label={t('annotate.undo')} onPress={undo} dim={!past.current.length} />
@@ -178,6 +205,8 @@ const styles = StyleSheet.create({
   canvas: { flex: 1, marginHorizontal: 12, marginTop: 8, borderRadius: 16, overflow: 'hidden' },
   bar: { paddingTop: 10, paddingBottom: 12, borderTopWidth: StyleSheet.hairlineWidth },
   sliderWrap: { paddingHorizontal: 16 },
+  redactModes: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginBottom: 8 },
+  redactChip: { flex: 1, alignItems: 'center', paddingVertical: 10 },
   colors: { flexDirection: 'row', gap: 10, alignItems: 'center', paddingHorizontal: 16, marginBottom: 8 },
   swatch: { width: 28, height: 28, borderRadius: 14 },
   tools: { paddingHorizontal: 12, gap: 4, alignItems: 'center' },

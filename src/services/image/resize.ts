@@ -19,6 +19,8 @@ export type ProcessOptions = {
   quality?: number;
   /** Exact output pixels. When set, overrides ratio/scale (cover-crop, no distortion). */
   target?: { w: number; h: number };
+  /** optional 4x5 color matrix (filter) baked in — forces the surface path */
+  colorMatrix?: number[];
 };
 
 /** center-crop rect of (iw,ih) matching target aspect ratio ar (w/h) */
@@ -59,13 +61,20 @@ export function computeOutputDims(
  * Never upscales beyond the source.
  */
 export async function processToImage(uri: string, opts: ProcessOptions = {}): Promise<EncodeResult> {
-  const { scale = 1, ratio = 'original', format = 'jpg', quality = 92, target } = opts;
+  const { scale = 1, ratio = 'original', format = 'jpg', quality = 92, target, colorMatrix } = opts;
 
   const data = await Skia.Data.fromURI(uri);
   const img = Skia.Image.MakeImageFromEncoded(data);
   if (!img) throw new Error('decode_failed');
   const iw = img.width();
   const ih = img.height();
+
+  const filterPaint = () => {
+    const p = Skia.Paint();
+    p.setAntiAlias(true);
+    if (colorMatrix) p.setColorFilter(Skia.ColorFilter.MakeMatrix(colorMatrix));
+    return p;
+  };
 
   // Exact-dimensions path: cover-crop the source to the target aspect, then
   // draw into a target-sized surface. Used for custom width×height (e.g. exam
@@ -76,8 +85,7 @@ export async function processToImage(uri: string, opts: ProcessOptions = {}): Pr
     const crop = cropForRatio(iw, ih, outW / outH);
     const surface = Skia.Surface.MakeOffscreen(outW, outH);
     if (!surface) throw new Error('surface_failed');
-    const paint = Skia.Paint();
-    paint.setAntiAlias(true);
+    const paint = filterPaint();
     surface.getCanvas().drawImageRect(
       img,
       Skia.XYWHRect(crop.x, crop.y, crop.w, crop.h),
@@ -90,10 +98,10 @@ export async function processToImage(uri: string, opts: ProcessOptions = {}): Pr
 
   const s = Math.max(0.05, Math.min(1, scale));
 
-  // Fast path: no crop and no downscale = pure format transcode. Skips the
-  // offscreen surface entirely, so full-resolution photos (which can exceed the
-  // GPU max-texture size and make MakeOffscreen fail) always convert reliably.
-  if (ratio === 'original' && s >= 1) {
+  // Fast path: no crop, no downscale, no filter = pure format transcode. Skips
+  // the offscreen surface entirely, so full-resolution photos (which can exceed
+  // the GPU max-texture size and make MakeOffscreen fail) always convert reliably.
+  if (ratio === 'original' && s >= 1 && !colorMatrix) {
     return encodeImage(img, format, quality, 'converted');
   }
 
@@ -103,8 +111,7 @@ export async function processToImage(uri: string, opts: ProcessOptions = {}): Pr
 
   const surface = Skia.Surface.MakeOffscreen(outW, outH);
   if (!surface) throw new Error('surface_failed');
-  const paint = Skia.Paint();
-  paint.setAntiAlias(true);
+  const paint = filterPaint();
   surface.getCanvas().drawImageRect(
     img,
     Skia.XYWHRect(crop.x, crop.y, crop.w, crop.h),

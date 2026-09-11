@@ -23,7 +23,7 @@ export async function flattenAnnotations(
   if (!surface) throw new Error('surface_failed');
   const canvas = surface.getCanvas();
   canvas.drawImage(img, 0, 0);
-  paintAnnotations(canvas, w, h, annotations, null, px => systemFont(px));
+  paintAnnotations(canvas, w, h, annotations, null, px => systemFont(px), img);
   surface.flush();
 
   const base64 = surface.makeImageSnapshot().encodeToBase64(ImageFormat.JPEG, quality);

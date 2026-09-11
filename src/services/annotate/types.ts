@@ -47,7 +47,20 @@ export type TextItem = {
   opacity: number;
 };
 
-export type Annotation = Stroke | ShapeItem | TextItem;
+export type RedactMode = 'solid' | 'blur' | 'pixel';
+
+/** A privacy box over sensitive content (Aadhaar/phone/etc). Rect in normalized
+ * coords. 'solid' fills black; 'blur'/'pixel' obscure the underlying pixels and
+ * fall back to solid black when the source image isn't available. */
+export type RedactItem = {
+  id: string;
+  kind: 'redact';
+  mode: RedactMode;
+  a: Pt;
+  b: Pt;
+};
+
+export type Annotation = Stroke | ShapeItem | TextItem | RedactItem;
 
 /** default palette + sizes shared by the drawing toolbar */
 export const PEN_COLORS = ['#111111', '#E5484D', '#2B6BE4', '#2F9E44', '#F08C00', '#FFFFFF'];

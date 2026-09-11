@@ -21,6 +21,9 @@ import { OrganizeScreen } from '../screens/OrganizeScreen';
 import { PdfEditorScreen } from '../screens/PdfEditorScreen';
 import { PdfTextEditorScreen } from '../screens/PdfTextEditorScreen';
 import { ConvertScreen } from '../screens/ConvertScreen';
+import { IdPhotoScreen } from '../screens/IdPhotoScreen';
+import { ExifScreen } from '../screens/ExifScreen';
+import { ColorPickerScreen } from '../screens/ColorPickerScreen';
 import { OcrScreen } from '../screens/OcrScreen';
 import { CoffeeScreen } from '../screens/CoffeeScreen';
 import { AboutScreen } from '../screens/AboutScreen';
@@ -75,6 +78,9 @@ export function RootNavigator() {
         <Stack.Screen name="PdfEditor" component={PdfEditorScreen} />
         <Stack.Screen name="PdfTextEditor" component={PdfTextEditorScreen} />
         <Stack.Screen name="Convert" component={ConvertScreen} />
+        <Stack.Screen name="IdPhoto" component={IdPhotoScreen} />
+        <Stack.Screen name="Exif" component={ExifScreen} />
+        <Stack.Screen name="ColorPicker" component={ColorPickerScreen} />
         <Stack.Screen name="Ocr" component={OcrScreen} />
         <Stack.Screen name="Coffee" component={CoffeeScreen} />
         <Stack.Screen name="About" component={AboutScreen} />

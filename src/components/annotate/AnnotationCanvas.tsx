@@ -5,9 +5,9 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { runOnJS, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { paintAnnotations } from '../../services/annotate/paint';
 import { systemFont } from '../../services/annotate/font';
-import type { Annotation, Pt, ShapeKind, StrokeTool, TextItem } from '../../services/annotate/types';
+import type { Annotation, Pt, RedactMode, ShapeKind, StrokeTool, TextItem } from '../../services/annotate/types';
 
-export type CanvasTool = 'view' | StrokeTool | 'erase' | ShapeKind | 'text';
+export type CanvasTool = 'view' | StrokeTool | 'erase' | ShapeKind | 'text' | 'redact';
 
 type Props = {
   uri: string;
@@ -16,6 +16,7 @@ type Props = {
   color: string;
   width: number;
   opacity: number;
+  redactMode?: RedactMode;
   onCommit: (a: Annotation) => void;
   onErase: (pt: Pt) => void;
   onTextPlace: (pt: Pt) => void;
@@ -27,7 +28,7 @@ let seq = 0;
 const isShape = (t: CanvasTool): t is ShapeKind => t === 'rect' || t === 'oval' || t === 'line' || t === 'arrow';
 const isStroke = (t: CanvasTool): t is StrokeTool => t === 'pen' || t === 'highlight';
 
-export function AnnotationCanvas({ uri, annotations, tool, color, width, opacity, onCommit, onErase, onTextPlace, onTextSelect, onTextMove }: Props) {
+export function AnnotationCanvas({ uri, annotations, tool, color, width, opacity, redactMode = 'solid', onCommit, onErase, onTextPlace, onTextSelect, onTextMove }: Props) {
   const image = useImage(uri);
   const [box, setBox] = useState({ w: 0, h: 0 });
   const [live, setLive] = useState<Annotation | null>(null);
@@ -103,6 +104,7 @@ export function AnnotationCanvas({ uri, annotations, tool, color, width, opacity
     if (tool === 'erase') return onErase(p);
     if (isStroke(tool)) return setLive({ id: `a${seq++}`, kind: 'stroke', tool, color, width, opacity, points: [p] });
     if (isShape(tool)) return setLive({ id: `a${seq++}`, kind: 'shape', shape: tool, a: p, b: p, color, width, opacity });
+    if (tool === 'redact') return setLive({ id: `a${seq++}`, kind: 'redact', mode: redactMode, a: p, b: p });
     if (tool === 'text') {
       const t = textAt(p);
       dragText.current = t ? { id: t.id, orig: { x: t.x, y: t.y }, grab: p } : null;
@@ -116,6 +118,7 @@ export function AnnotationCanvas({ uri, annotations, tool, color, width, opacity
     if (tool === 'erase') return onErase(p);
     if (isStroke(tool)) return setLive(prev => (prev && prev.kind === 'stroke' ? { ...prev, points: [...prev.points, p] } : prev));
     if (isShape(tool)) return setLive(prev => (prev && prev.kind === 'shape' ? { ...prev, b: p } : prev));
+    if (tool === 'redact') return setLive(prev => (prev && prev.kind === 'redact' ? { ...prev, b: p } : prev));
     if (tool === 'text' && dragText.current) {
       const d = dragText.current;
       onTextMove(d.id, { x: d.orig.x + (p.x - d.grab.x), y: d.orig.y + (p.y - d.grab.y) });
@@ -136,6 +139,7 @@ export function AnnotationCanvas({ uri, annotations, tool, color, width, opacity
       if (prev) {
         if (prev.kind === 'stroke' && prev.points.length) onCommit(prev);
         else if (prev.kind === 'shape') onCommit(prev);
+        else if (prev.kind === 'redact' && Math.abs(prev.b.x - prev.a.x) > 0.01 && Math.abs(prev.b.y - prev.a.y) > 0.01) onCommit(prev);
       }
       return null;
     });
@@ -191,9 +195,9 @@ export function AnnotationCanvas({ uri, annotations, tool, color, width, opacity
     const all = live ? [...annotations, live] : annotations;
     return createPicture(canvas => {
       canvas.translate(rect.x, rect.y);
-      paintAnnotations(canvas, rect.w, rect.h, all, null, px => systemFont(px));
+      paintAnnotations(canvas, rect.w, rect.h, all, null, px => systemFont(px), image);
     });
-  }, [rect, annotations, live]);
+  }, [rect, annotations, live, image]);
 
   const animatedStyle = useAnimatedStyle(() => {
     return {

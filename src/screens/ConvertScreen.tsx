@@ -37,6 +37,7 @@ import { pickImages } from '../services/gallery';
 import { saveToGallery } from '../services/gallery/save';
 import { MIME, type ImgFormat } from '../services/image/encode';
 import { computeOutputDims, processToImage, type ResizeRatio } from '../services/image/resize';
+import { FILTERS, buildMatrix, type FilterKey } from '../services/image/filters';
 import { shareFiles } from '../services/sharing';
 import { haptics } from '../lib/haptics';
 import { useI18n } from '../i18n';
@@ -112,6 +113,7 @@ export function ConvertScreen({ navigation }: RootScreenProps<'Convert'>) {
   const [metadataList, setMetadataList] = useState<ImageMetadata[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [format, setFormat] = useState<ImgFormat>('jpg');
+  const [filter, setFilter] = useState<FilterKey>('original');
   const [quality, setQuality] = useState(0.9);
   const [scale, setScale] = useState(1);
   const [ratio, setRatio] = useState<ResizeRatio>('original');
@@ -208,6 +210,7 @@ export function ConvertScreen({ navigation }: RootScreenProps<'Convert'>) {
 
   const activeUri = sources[activeIndex];
   const activeMeta = metadataList[activeIndex];
+  const colorMatrix = filter === 'original' ? undefined : buildMatrix(filter, 0, 0);
 
   const nW = parseInt(customW, 10);
   const nH = parseInt(customH, 10);
@@ -251,7 +254,7 @@ export function ConvertScreen({ navigation }: RootScreenProps<'Convert'>) {
       try {
         if (path.startsWith('content://')) { path = await copyToLocalCache(path); temp = strip(path); }
         const r = await processToImage(path, {
-          scale, ratio, format, quality: Math.round(quality * 100), target: targetDims,
+          scale, ratio, format, quality: Math.round(quality * 100), target: targetDims, colorMatrix,
         });
         if (seq === measureSeq.current) setMeasured(r.bytes);
         try { await RNFS.unlink(strip(r.uri)); } catch {}
@@ -264,7 +267,7 @@ export function ConvertScreen({ navigation }: RootScreenProps<'Convert'>) {
     }, 350);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeUri, activeMeta, format, quality, scale, ratio, custom, customW, customH]);
+  }, [activeUri, activeMeta, format, quality, scale, ratio, custom, customW, customH, filter]);
 
   const curExt = activeMeta ? (activeMeta.name.split('.').pop() || '').toUpperCase() : '';
   const baseName = activeMeta ? activeMeta.name.replace(/\.[^/.]+$/, '') : '';
@@ -315,6 +318,7 @@ export function ConvertScreen({ navigation }: RootScreenProps<'Convert'>) {
           format,
           quality: Math.round(quality * 100),
           target: targetDims,
+          colorMatrix,
         });
         results.push({ uri: r.uri, bytes: r.bytes });
       }
@@ -475,6 +479,28 @@ export function ConvertScreen({ navigation }: RootScreenProps<'Convert'>) {
 
             {/* controls */}
             <View style={styles.panel}>
+              <Text variant="callout" style={styles.sectionTitle}>
+                {hi ? 'फ़िल्टर' : 'Filter'}
+                {sources.length > 1 ? ` · ${hi ? 'सभी पर' : 'all images'}` : ''}
+              </Text>
+              <View style={styles.chips}>
+                {FILTERS.map(f => {
+                  const on = f.key === filter;
+                  return (
+                    <Pressable
+                      key={f.key}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: on }}
+                      accessibilityLabel={f.label}
+                      onPress={() => { haptics.light(); setFilter(f.key); }}
+                      style={[styles.chipSm, { backgroundColor: on ? theme.colors.brand : theme.colors.surfaceAlt, borderRadius: theme.radius.pill }]}
+                    >
+                      <Text variant="caption" style={{ color: on ? theme.colors.onBrand : theme.colors.textSecondary }}>{f.label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
               <Text variant="callout" style={styles.sectionTitle}>{hi ? 'आउटपुट फ़ॉर्मेट' : 'Output Format'}</Text>
               <View style={styles.chips}>
                 {FORMATS.map(f => {

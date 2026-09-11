@@ -7,7 +7,7 @@ import com.facebook.react.uimanager.ViewManager
 
 class PdfRasterPackage : ReactPackage {
   override fun createNativeModules(rc: ReactApplicationContext): List<NativeModule> =
-    listOf(PdfRasterModule(rc), PlayUpdateModule(rc))
+    listOf(PdfRasterModule(rc), PlayUpdateModule(rc), BackgroundRemoverModule(rc))
 
   override fun createViewManagers(rc: ReactApplicationContext): List<ViewManager<*, *>> =
     emptyList()

@@ -16,6 +16,8 @@ type Props = {
   min?: number;
   max?: number;
   onChange: (v: number) => void;
+  /** fired once when a drag begins — snapshot the pre-edit state for undo/redo */
+  onCommit?: () => void;
   /** custom value formatter (default: signed 1-decimal) */
   format?: (v: number) => string;
 };
@@ -23,7 +25,7 @@ type Props = {
 const THUMB = 24;
 
 /** Minimal UI-thread slider built on gesture-handler (no native slider dep). */
-export function Slider({ label, value, min = -1, max = 1, onChange, format }: Props) {
+export function Slider({ label, value, min = -1, max = 1, onChange, onCommit, format }: Props) {
   const theme = useTheme();
   const [width, setWidth] = useState(0);
   const x = useSharedValue(0);
@@ -43,6 +45,7 @@ export function Slider({ label, value, min = -1, max = 1, onChange, format }: Pr
   const pan = Gesture.Pan()
     .onStart(() => {
       startX.value = x.value;
+      if (onCommit) runOnJS(onCommit)();
     })
     .onUpdate(e => {
       const nx = Math.min(Math.max(startX.value + e.translationX, 0), usable);

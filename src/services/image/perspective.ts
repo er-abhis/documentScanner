@@ -81,6 +81,21 @@ function decodeSync(data: Parameters<typeof Skia.Image.MakeImageFromEncoded>[0])
   return Skia.Image.MakeImageFromEncoded(data);
 }
 
+/** Mirror a decoded image horizontally and/or vertically. */
+function flip(img: ReturnType<typeof decodeSync>, h: boolean, v: boolean) {
+  if ((!h && !v) || !img) return img;
+  const w = img.width();
+  const ht = img.height();
+  const surface = Skia.Surface.MakeOffscreen(w, ht);
+  if (!surface) return img;
+  const canvas = surface.getCanvas();
+  canvas.translate(h ? w : 0, v ? ht : 0);
+  canvas.scale(h ? -1 : 1, v ? -1 : 1);
+  canvas.drawImage(img, 0, 0);
+  surface.flush();
+  return surface.makeImageSnapshot();
+}
+
 export type WarpArgs = {
   /** file:// uri of the source page */
   uri: string;
@@ -88,10 +103,15 @@ export type WarpArgs = {
   corners: Quad;
   /** 0/90/180/270 applied before warping */
   rotation?: number;
+  /** mirror horizontally / vertically (applied after rotation) */
+  flipH?: boolean;
+  flipV?: boolean;
   /** JPEG quality 1-100 */
   quality?: number;
   /** optional 4x5 color matrix (enhancement filter) baked into the same pass */
   colorMatrix?: number[];
+  /** optional blur/sharpen image filter baked into the same pass */
+  imageFilter?: import('@shopify/react-native-skia').SkImageFilter | null;
 };
 
 /**
@@ -103,8 +123,11 @@ export async function warpDocument({
   uri,
   corners,
   rotation = 0,
+  flipH = false,
+  flipV = false,
   quality = 92,
   colorMatrix,
+  imageFilter,
 }: WarpArgs): Promise<string> {
   const data = await Skia.Data.fromURI(uri);
   const decoded = decodeSync(data);
@@ -127,11 +150,15 @@ export async function warpDocument({
   const paint = Skia.Paint();
   paint.setAntiAlias(true);
   if (colorMatrix) paint.setColorFilter(Skia.ColorFilter.MakeMatrix(colorMatrix));
+  if (imageFilter) paint.setImageFilter(imageFilter);
   canvas.concat(m);
   canvas.drawImageOptions(img, 0, 0, FilterMode.Linear, MipmapMode.None, paint);
   surface.flush();
 
-  const snapshot = surface.makeImageSnapshot();
+  // Flip is orientation-only, applied to the finished crop so it never disturbs
+  // the corner geometry chosen on the un-flipped preview.
+  const snapshot = flip(surface.makeImageSnapshot(), flipH, flipV);
+  if (!snapshot) throw new Error('flip_failed');
   const base64 = snapshot.encodeToBase64(ImageFormat.JPEG, quality);
   const path = `${RNFS.CachesDirectoryPath}/edited_${Date.now()}.jpg`;
   await RNFS.writeFile(path, base64, 'base64');

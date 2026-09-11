@@ -9,6 +9,10 @@ import {
   FolderOpen,
   RefreshCw,
   ScanText,
+  IdCard,
+  FileScan,
+  Pipette,
+  ShieldCheck,
   QrCode,
   Grid3x3,
   LockKeyhole,
@@ -17,7 +21,9 @@ import {
 import { Screen } from '../components/Screen';
 import { Text } from '../components/Text';
 import { useImportImages } from '../hooks/useImportImages';
+import { useToast } from '../components/Toast';
 import { pickImages } from '../services/gallery';
+import { biometricAuth, wipeImageCache } from '../services/secure';
 import { useT } from '../i18n';
 import { useTheme } from '../theme';
 import type { RootStackParamList } from '../types/navigation';
@@ -32,11 +38,19 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 export function ToolsScreen() {
   const navigation = useNavigation<Nav>();
   const importImages = useImportImages();
+  const toast = useToast();
   const t = useT();
 
   const ocrImage = async () => {
     const [uri] = await pickImages(1);
     if (uri) navigation.navigate('Ocr', { uri, name: 'Image', kind: 'image' });
+  };
+
+  const privateWipe = async () => {
+    const ok = await biometricAuth(t('tools.privateAuth'));
+    if (!ok) return;
+    const n = await wipeImageCache();
+    toast({ variant: 'success', message: t('tools.privateDone').replace('{n}', String(n)) });
   };
 
   const groups: { title: string; tools: Tool[] }[] = [
@@ -47,6 +61,9 @@ export function ToolsScreen() {
         { icon: Grid2x2, label: t('home.collage'), hint: t('tools.collageSub'), onPress: () => navigation.navigate('CollageStudio') },
         { icon: ImagePlus, label: t('home.imgToPdf'), hint: t('tools.imgPdfSub'), onPress: importImages },
         { icon: RefreshCw, label: t('home.convert'), hint: t('home.convertSub'), onPress: () => navigation.navigate('Convert') },
+        { icon: IdCard, label: t('tools.idPhoto'), hint: t('tools.idPhotoSub'), onPress: () => navigation.navigate('IdPhoto') },
+        { icon: FileScan, label: t('tools.exif'), hint: t('tools.exifSub'), onPress: () => navigation.navigate('Exif') },
+        { icon: Pipette, label: t('tools.colorPicker'), hint: t('tools.colorPickerSub'), onPress: () => navigation.navigate('ColorPicker') },
         { icon: ScanText, label: t('tools.scanText'), hint: t('tools.scanTextSub'), onPress: ocrImage },
       ],
     },
@@ -62,6 +79,7 @@ export function ToolsScreen() {
       title: t('tools.library'),
       tools: [
         { icon: FolderOpen, label: t('tools.myDocs'), hint: t('tools.myDocsSub'), onPress: () => navigation.navigate('Documents') },
+        { icon: ShieldCheck, label: t('tools.private'), hint: t('tools.privateSub'), onPress: privateWipe },
       ],
     },
   ];
