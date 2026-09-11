@@ -53,7 +53,7 @@ export async function biometricAuth(reason: string): Promise<boolean> {
 }
 
 // Temp files the image pipeline writes to the (app-private) cache dir.
-const TEMP_RX = /^(edited|rot|converted|annotated|joined|idsheet|cleaned|img|convert|temp_conv|scan)_/;
+const TEMP_RX = /^(edited|rot|converted|annotated|joined|idsheet|idphoto|cleaned|cutout|img|convert|temp_conv|scan|pdfpage)_/;
 
 /**
  * Wipe leftover editing temp files from the cache dir. These already live in the

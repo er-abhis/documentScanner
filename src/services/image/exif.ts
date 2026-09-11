@@ -106,7 +106,7 @@ export async function readExif(uri: string): Promise<ExifEntry[]> {
     return '';
   };
 
-  const parseIFD = (ifdOff: number, gps = false) => {
+  const parseIFD = (ifdOff: number) => {
     if (ifdOff <= 0 || tiff + ifdOff + 2 > b.length) return;
     const base = tiff + ifdOff;
     const n = u16(base);
@@ -121,7 +121,6 @@ export async function readExif(uri: string): Promise<ExifEntry[]> {
       const total = sizePer * count;
       const valOff = total <= 4 ? off + 8 : tiff + u32(off + 8);
       if (tag === 0x8769) subExif = u32(off + 8);
-      if (gps) continue; // GPS handled separately below
       const label = TAGS[tag];
       if (!label || seen.has(label)) continue;
       const v = readVal(type, count, valOff);

@@ -30,8 +30,8 @@ import {
   Check,
   Crop,
   SlidersHorizontal,
-  FlipHorizontal,
-  FlipVertical,
+  FlipHorizontal2,
+  FlipVertical2,
   Wand2,
   Eye,
   Undo2,
@@ -458,7 +458,7 @@ export function EditorScreen({ route, navigation }: RootScreenProps<'Editor'>) {
             <View style={styles.tools}>
               <Button
                 title={t('editor.flipH')}
-                icon={FlipHorizontal}
+                icon={FlipHorizontal2}
                 variant={flipH ? 'primary' : 'secondary'}
                 fullWidth={false}
                 style={styles.tool}
@@ -469,7 +469,7 @@ export function EditorScreen({ route, navigation }: RootScreenProps<'Editor'>) {
               />
               <Button
                 title={t('editor.flipV')}
-                icon={FlipVertical}
+                icon={FlipVertical2}
                 variant={flipV ? 'primary' : 'secondary'}
                 fullWidth={false}
                 style={styles.tool}

@@ -180,9 +180,8 @@ export function AnnotationCanvas({ uri, annotations, tool, color, width, opacity
       const mapped = mapCoords(e.x, e.y);
       runOnJS(extend)(mapped.x, mapped.y);
     })
-    .onEnd(() => {
-      runOnJS(end)();
-    })
+    // onFinalize fires exactly once per gesture (success or cancel), so it alone
+    // commits the stroke/shape/redact and handles the text tap — no double-fire.
     .onFinalize(() => {
       runOnJS(end)();
     });
