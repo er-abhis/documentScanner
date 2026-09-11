@@ -122,7 +122,14 @@ export function CreateQrScreen({ route, navigation }: RootScreenProps<'CreateQr'
         {qrValue ? (
           <>
             <View style={styles.qrCard}>
-              <QRCode value={qrValue} size={QR_SIZE} backgroundColor="#FFFFFF" quietZone={16} getRef={c => (svgRef.current = c)} />
+              {/* Force a single Byte-mode segment for secret payloads. The qrcode
+                  lib auto-splits base64 into Alphanumeric+Byte segments; ML Kit
+                  (vision-camera) mis-reads that mode transition and returns
+                  shifted bytes, so the opaque AES payload fails GCM auth
+                  ("corrupted") even with the right password. Byte-only is
+                  universal. Plain text/URLs keep the default (not opaque, so a
+                  scanner quirk is harmless and alphanumeric packs smaller). */}
+              <QRCode value={secret ? ([{ data: qrValue, mode: 'byte' }] as unknown as string) : qrValue} size={QR_SIZE} backgroundColor="#FFFFFF" quietZone={16} getRef={c => (svgRef.current = c)} />
             </View>
             {secret ? (
               <View style={[styles.lockNote, { backgroundColor: theme.colors.brandSubtle, borderRadius: theme.radius.md }]}>
