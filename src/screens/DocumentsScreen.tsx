@@ -36,7 +36,7 @@ export function DocumentsScreen({ navigation }: RootScreenProps<'Documents'>) {
   const [renameFor, setRenameFor] = useState<DocumentMeta | null>(null);
 
   const reload = useCallback(() => {
-    listDocuments().then(setDocs);
+    listDocuments().then(setDocs).catch(() => setDocs([]));
   }, []);
 
   useFocusEffect(

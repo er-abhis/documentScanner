@@ -9,6 +9,8 @@ type Props = {
   variant?: 'plain' | 'surface';
   color?: string;
   disabled?: boolean;
+  /** icon glyph size (default: theme medium) */
+  size?: number;
 };
 
 export function IconButton({
@@ -18,6 +20,7 @@ export function IconButton({
   variant = 'plain',
   color,
   disabled = false,
+  size,
 }: Props) {
   const theme = useTheme();
   return (
@@ -39,7 +42,7 @@ export function IconButton({
         disabled && { opacity: 0.3 },
       ]}
     >
-      <Icon size={theme.iconSize.md} color={color ?? theme.colors.text} />
+      <Icon size={size ?? theme.iconSize.md} color={color ?? theme.colors.text} />
     </Pressable>
   );
 }

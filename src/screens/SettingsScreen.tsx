@@ -31,7 +31,7 @@ export function SettingsScreen({ navigation }: RootScreenProps<'Settings'>) {
   const [autoUpdate, setAutoUpdate] = useState(false);
   const [checking, setChecking] = useState(false);
 
-  useFocusEffect(useCallback(() => { getPrefs().then(p => setAutoUpdate(p.autoUpdate)); }, []));
+  useFocusEffect(useCallback(() => { getPrefs().then(p => setAutoUpdate(p.autoUpdate)).catch(() => {}); }, []));
 
   const toggleAuto = (v: boolean) => { setAutoUpdate(v); setPref('autoUpdate', v); };
 

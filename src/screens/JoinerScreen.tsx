@@ -56,7 +56,7 @@ export function JoinerScreen({ navigation }: RootScreenProps<'Joiner'>) {
     pickImages().then(u => {
       if (u.length === 0) navigation.goBack();
       else setUris(u);
-    });
+    }).catch(() => navigation.goBack());
   }, [navigation]);
 
   // recompose preview whenever inputs change (debounced)

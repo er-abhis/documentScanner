@@ -22,6 +22,17 @@ const GAP_MM = 4;
 
 export const specPx = (spec: IdSpec) => ({ w: mm(spec.wMm), h: mm(spec.hMm) });
 
+/** Columns × rows of a spec that tile onto one 4R print sheet (used by the UI to
+ * show how many copies a sheet yields, and by the sheet renderer itself). */
+export function sheetGrid(spec: IdSpec): { cols: number; rows: number; count: number } {
+  const { w: pw, h: ph } = specPx(spec);
+  const sw = mm(SHEET_W_MM), sh = mm(SHEET_H_MM);
+  const margin = mm(MARGIN_MM), gap = mm(GAP_MM);
+  const cols = Math.max(1, Math.floor((sw - 2 * margin + gap) / (pw + gap)));
+  const rows = Math.max(1, Math.floor((sh - 2 * margin + gap) / (ph + gap)));
+  return { cols, rows, count: cols * rows };
+}
+
 export type Crop = { x: number; y: number; w: number; h: number };
 
 /**
@@ -103,10 +114,8 @@ export async function buildIdSheet({ photoUri, spec, background = '#FFFFFF', cut
 
   const sw = mm(SHEET_W_MM);
   const sh = mm(SHEET_H_MM);
-  const margin = mm(MARGIN_MM);
   const gap = mm(GAP_MM);
-  const cols = Math.max(1, Math.floor((sw - 2 * margin + gap) / (pw + gap)));
-  const rows = Math.max(1, Math.floor((sh - 2 * margin + gap) / (ph + gap)));
+  const { cols, rows } = sheetGrid(spec);
 
   const sheet = Skia.Surface.MakeOffscreen(sw, sh);
   if (!sheet) throw new Error('surface_failed');

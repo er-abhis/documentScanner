@@ -69,7 +69,7 @@ export function DocumentScreen({ route, navigation }: RootScreenProps<'Document'
       listDocuments().then(list => {
         setDoc(list.find(d => d.id === id) ?? null);
         setLoading(false);
-      });
+      }).catch(() => { setDoc(null); setLoading(false); });
     }, [id]),
   );
 

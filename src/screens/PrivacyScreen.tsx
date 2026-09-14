@@ -2,7 +2,6 @@ import { StyleSheet, View } from 'react-native';
 import { Screen } from '../components/Screen';
 import { Header } from '../components/Header';
 import { Text } from '../components/Text';
-import { useTheme } from '../theme';
 import { useI18n } from '../i18n';
 import type { RootScreenProps } from '../types/navigation';
 
@@ -38,7 +37,6 @@ const SECTIONS: { en: { title: string; body: string }; hi: { title: string; body
 ];
 
 export function PrivacyScreen({ navigation }: RootScreenProps<'Privacy'>) {
-  const theme = useTheme();
   const { t, lang } = useI18n();
   return (
     <Screen scroll>

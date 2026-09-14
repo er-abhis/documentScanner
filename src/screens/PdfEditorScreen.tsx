@@ -99,7 +99,7 @@ export function PdfEditorScreen({ route, navigation }: RootScreenProps<'PdfEdito
       const r = eraseSize / 1000;
       let hit = false;
       if (a.kind === 'stroke') hit = a.points.some(p => Math.hypot(p.x - pt.x, p.y - pt.y) <= r + a.width);
-      else if (a.kind === 'shape') {
+      else if (a.kind === 'shape' || a.kind === 'redact') {
         const minx = Math.min(a.a.x, a.b.x) - r, maxx = Math.max(a.a.x, a.b.x) + r;
         const miny = Math.min(a.a.y, a.b.y) - r, maxy = Math.max(a.a.y, a.b.y) + r;
         hit = pt.x >= minx && pt.x <= maxx && pt.y >= miny && pt.y <= maxy;

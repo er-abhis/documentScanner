@@ -6,11 +6,14 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
 } from 'react-native-reanimated';
+import type { LucideIcon } from 'lucide-react-native';
 import { Text } from './Text';
 import { useTheme } from '../theme';
 
 type Props = {
   label: string;
+  /** optional glyph shown before the label */
+  icon?: LucideIcon;
   /** current value */
   value: number;
   min?: number;
@@ -25,7 +28,7 @@ type Props = {
 const THUMB = 24;
 
 /** Minimal UI-thread slider built on gesture-handler (no native slider dep). */
-export function Slider({ label, value, min = -1, max = 1, onChange, onCommit, format }: Props) {
+export function Slider({ label, icon: Icon, value, min = -1, max = 1, onChange, onCommit, format }: Props) {
   const theme = useTheme();
   const [width, setWidth] = useState(0);
   const x = useSharedValue(0);
@@ -61,9 +64,12 @@ export function Slider({ label, value, min = -1, max = 1, onChange, onCommit, fo
   return (
     <View style={styles.wrap}>
       <View style={styles.labelRow}>
-        <Text variant="callout" color="textSecondary">
-          {label}
-        </Text>
+        <View style={styles.labelLeft}>
+          {Icon ? <Icon size={15} color={theme.colors.textSecondary} /> : null}
+          <Text variant="callout" color="textSecondary">
+            {label}
+          </Text>
+        </View>
         <Text variant="callout" color="textSecondary">
           {format ? format(value) : value > 0 ? `+${value.toFixed(1)}` : value.toFixed(1)}
         </Text>
@@ -89,7 +95,8 @@ export function Slider({ label, value, min = -1, max = 1, onChange, onCommit, fo
 
 const styles = StyleSheet.create({
   wrap: { marginBottom: 12 },
-  labelRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  labelLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   track: { height: THUMB, justifyContent: 'center' },
   rail: { height: 4, borderRadius: 2, width: '100%' },
   fill: { position: 'absolute', left: 0, height: 4, borderRadius: 2 },
