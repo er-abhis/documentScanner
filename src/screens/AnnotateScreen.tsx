@@ -126,7 +126,7 @@ export function AnnotateScreen({ route, navigation }: RootScreenProps<'Annotate'
   return (
     <Screen padded={false}>
       <View style={styles.head}>
-        <Header title={t('annotate.title')} onBack={back} right={<Pressable onPress={save} hitSlop={HIT_SLOP}><Check size={theme.iconSize.md} color={theme.colors.brand} /></Pressable>} />
+        <Header title={t('annotate.title')} onBack={back} right={<Pressable onPress={save} hitSlop={HIT_SLOP} accessibilityRole="button" accessibilityLabel={isHi ? 'सहेजें' : 'Save'}><Check size={theme.iconSize.md} color={theme.colors.brand} /></Pressable>} />
       </View>
 
       <View style={[styles.canvas, { backgroundColor: theme.colors.surfaceSunken }]}>

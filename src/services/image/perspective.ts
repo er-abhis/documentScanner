@@ -135,7 +135,14 @@ export async function warpDocument({
   const img = rotate(decoded, rotation);
   if (!img) throw new Error('rotate_failed');
 
-  const { width, height } = outputSize(corners);
+  // ponytail: cap the output surface — corners come from user drag, so a stray
+  // point could ask for a giant canvas and OOM. Downscale uniformly past 4096px
+  // (300-DPI A4 ≈ 2480×3508, so no quality loss for real documents).
+  const raw = outputSize(corners);
+  const MAX_SIDE = 4096;
+  const over = Math.max(raw.width, raw.height) / MAX_SIDE;
+  const width = over > 1 ? Math.round(raw.width / over) : raw.width;
+  const height = over > 1 ? Math.round(raw.height / over) : raw.height;
   const dst: Quad = [
     { x: 0, y: 0 },
     { x: width, y: 0 },

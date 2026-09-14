@@ -1,4 +1,4 @@
-import { Skia, ImageFormat, FilterMode, MipmapMode } from '@shopify/react-native-skia';
+import { Skia, ImageFormat, FilterMode, MipmapMode, type SkImage } from '@shopify/react-native-skia';
 import RNFS from 'react-native-fs';
 
 export type JoinDirection = 'vertical' | 'horizontal';
@@ -42,7 +42,7 @@ export async function joinImages({
 }: JoinOptions): Promise<string> {
   if (uris.length === 0) throw new Error('no_images');
 
-  const imgs = [];
+  const imgs: SkImage[] = [];
   for (const uri of uris) {
     const img = decode(await Skia.Data.fromURI(uri));
     if (!img) throw new Error('decode_failed');
@@ -56,7 +56,19 @@ export async function joinImages({
   const rawSpan = vertical
     ? Math.max(...imgs.map(i => i.width()))
     : Math.max(...imgs.map(i => i.height()));
-  const span = Math.min(rawSpan, MAX_SPAN);
+  let span = Math.min(rawSpan, MAX_SPAN);
+
+  // ponytail: MAX_SPAN caps the cross axis, but the flow axis is the *sum* of all
+  // image sizes — joining many tall images still OOMs. Shrink span uniformly so
+  // the flow side stays under cap (linear in span, so one pass is exact enough).
+  const MAX_FLOW = 12000;
+  const flowAt = (s: number) =>
+    imgs.reduce((sum, img) => {
+      const sc = vertical ? s / img.width() : s / img.height();
+      return sum + (vertical ? img.height() * sc : img.width() * sc);
+    }, 0) + spacing * (imgs.length - 1);
+  const totalFlow = flowAt(span);
+  if (totalFlow > MAX_FLOW) span = Math.max(1, Math.floor((span * MAX_FLOW) / totalFlow));
 
   // scaled box of each image once its cross dimension is `span`
   const boxes = imgs.map(img => {

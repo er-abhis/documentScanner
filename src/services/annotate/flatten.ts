@@ -16,13 +16,23 @@ export async function flattenAnnotations(
 ): Promise<string> {
   const img = Skia.Image.MakeImageFromEncoded(await Skia.Data.fromURI(uri));
   if (!img) throw new Error('decode_failed');
-  const w = img.width();
-  const h = img.height();
+  // ponytail: flatten at capped resolution — a 12MP+ photo at full size OOMs the
+  // offscreen surface. Downscale past 4096px longest side; annotations use
+  // normalized coords so they land correctly at any working size.
+  const MAX_SIDE = 4096;
+  const scale = Math.min(1, MAX_SIDE / Math.max(img.width(), img.height()));
+  const w = Math.round(img.width() * scale);
+  const h = Math.round(img.height() * scale);
 
   const surface = Skia.Surface.MakeOffscreen(w, h);
   if (!surface) throw new Error('surface_failed');
   const canvas = surface.getCanvas();
-  canvas.drawImage(img, 0, 0);
+  canvas.drawImageRect(
+    img,
+    Skia.XYWHRect(0, 0, img.width(), img.height()),
+    Skia.XYWHRect(0, 0, w, h),
+    Skia.Paint(),
+  );
   paintAnnotations(canvas, w, h, annotations, null, px => systemFont(px), img);
   surface.flush();
 

@@ -53,8 +53,8 @@ android {
         applicationId "com.abhishek.documentScanner"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 10
-        versionName "1.0.9"
+        versionCode 11
+        versionName "1.1.0"
 
         // App UI is only English + Hindi. Drop other locales' resources that
         // ship inside androidx / play-services / ML Kit to shrink the build.

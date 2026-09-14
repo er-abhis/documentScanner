@@ -163,6 +163,8 @@ export function ScanQrScreen({ navigation }: RootScreenProps<'ScanQr'>) {
           <Pressable
             onPress={() => navigation.goBack()}
             hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
             style={[styles.iconBtn, { backgroundColor: theme.colors.overlay }]}
           >
             <ArrowLeft size={22} color="#fff" />
@@ -170,6 +172,9 @@ export function ScanQrScreen({ navigation }: RootScreenProps<'ScanQr'>) {
           <Pressable
             onPress={() => setTorch(v => !v)}
             hitSlop={12}
+            accessibilityRole="button"
+            accessibilityState={{ selected: torch }}
+            accessibilityLabel={torch ? 'Turn off torch' : 'Turn on torch'}
             style={[styles.iconBtn, { backgroundColor: theme.colors.overlay }]}
           >
             {torch ? <Flashlight size={22} color="#fff" /> : <FlashlightOff size={22} color="#fff" />}

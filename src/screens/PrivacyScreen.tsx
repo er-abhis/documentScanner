@@ -19,8 +19,8 @@ const SECTIONS: { en: { title: string; body: string }; hi: { title: string; body
     hi: { title: 'कोई अकाउंट नहीं, कोई ट्रैकिंग नहीं', body: 'ऐप में कोई साइन-इन, कोई एनालिटिक्स SDK, कोई विज्ञापन और कोई तृतीय-पक्ष ट्रैकर नहीं है। हम कोई व्यक्तिगत डेटा एकत्र, संग्रहीत या बेचते नहीं हैं।' },
   },
   {
-    en: { title: 'No internet required', body: 'Core functionality works fully offline. The only optional network actions are ones you trigger yourself — opening a share sheet, a support link, or checking Google Play for an app update.' },
-    hi: { title: 'इंटरनेट की ज़रूरत नहीं', body: 'मुख्य कार्यक्षमता पूरी तरह ऑफ़लाइन काम करती है। एकमात्र वैकल्पिक नेटवर्क क्रियाएँ वे हैं जो आप स्वयं शुरू करते हैं — शेयर शीट खोलना, सपोर्ट लिंक, या ऐप अपडेट के लिए Google Play जाँचना।' },
+    en: { title: 'Network use', body: 'Scanning, editing, OCR, PDF and QR features work fully offline. A few things use the network but never send your documents: the app checks Google Play for updates automatically on launch, and the document scanner and background-removal tools download their on-device AI models from Google Play Services the first time you use them. Other network actions — opening a share sheet, a support or donation link — happen only when you tap them.' },
+    hi: { title: 'नेटवर्क उपयोग', body: 'स्कैनिंग, एडिटिंग, OCR, PDF और QR फ़ीचर पूरी तरह ऑफ़लाइन काम करते हैं। कुछ चीज़ें नेटवर्क का उपयोग करती हैं पर आपके दस्तावेज़ कभी नहीं भेजतीं: ऐप लॉन्च पर स्वतः Google Play से अपडेट जाँचता है, और डॉक्युमेंट स्कैनर व बैकग्राउंड-रिमूवल टूल पहली बार उपयोग पर अपने ऑन-डिवाइस AI मॉडल Google Play Services से डाउनलोड करते हैं। अन्य नेटवर्क क्रियाएँ — शेयर शीट, सपोर्ट या डोनेशन लिंक खोलना — केवल तब होती हैं जब आप टैप करते हैं।' },
   },
   {
     en: { title: 'Permissions', body: 'Camera is used only while you scan. The photo picker uses the system picker, so the app only sees the images you select. Files you save stay in the app’s private storage until you share or export them.' },

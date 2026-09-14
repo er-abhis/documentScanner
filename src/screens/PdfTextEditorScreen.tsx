@@ -144,12 +144,14 @@ export function PdfTextEditorScreen({ route, navigation }: RootScreenProps<'PdfT
           <RNWebView
             ref={webRef}
             source={{ uri: 'file:///android_asset/pdfjs/editor.html' }}
-            originWhitelist={['*']}
+            // Bundled local pdf.js editor only — never navigates off file://, and
+            // PDF bytes arrive via postMessage, so no cross-origin/universal file
+            // access is needed. Kept tight so a crafted PDF can't exfiltrate.
+            originWhitelist={['file://*']}
             javaScriptEnabled
             domStorageEnabled
             allowFileAccess
             allowFileAccessFromFileURLs
-            allowUniversalAccessFromFileURLs
             onMessage={onMessage}
             style={{ backgroundColor: theme.colors.surfaceSunken }}
           />
