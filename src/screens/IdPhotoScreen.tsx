@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, TextInput, View, type LayoutChangeEvent } from 'react-native';
 import { Canvas, Picture, Skia, createPicture, useImage } from '@shopify/react-native-skia';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
@@ -23,11 +23,17 @@ import { useI18n } from '../i18n';
 import { useTheme } from '../theme';
 import type { RootScreenProps } from '../types/navigation';
 
+// Common ID / government photo backgrounds (white & blue are the usual specs).
 const BACKGROUNDS = [
   { key: 'white', color: '#FFFFFF' },
+  { key: 'offwhite', color: '#F2F2F2' },
   { key: 'lightblue', color: '#DCE9F7' },
-  { key: 'gray', color: '#ECECEC' },
+  { key: 'skyblue', color: '#8CB8E8' },
+  { key: 'blue', color: '#2E6BFF' },
+  { key: 'gray', color: '#C9C9C9' },
+  { key: 'red', color: '#E5484D' },
 ];
+const HEX_RE = /^#([0-9A-F]{6})$/;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 export function IdPhotoScreen({ navigation }: RootScreenProps<'IdPhoto'>) {
@@ -46,6 +52,14 @@ export function IdPhotoScreen({ navigation }: RootScreenProps<'IdPhoto'>) {
   const [busy, setBusy] = useState(false);
   const [removeBg, setRemoveBg] = useState(false);
   const [cutoutUri, setCutoutUri] = useState<string | null>(null);
+  const [customHex, setCustomHex] = useState('');
+
+  const applyCustom = (v: string) => {
+    const s = v.replace(/[^0-9a-fA-F]/g, '').slice(0, 6).toUpperCase();
+    setCustomHex(s);
+    const full = `#${s}`;
+    if (HEX_RE.test(full)) setBg(full);
+  };
 
   const workUri = removeBg && cutoutUri ? cutoutUri : uri;
   const showBgChips = mode === 'sheet' || removeBg;
@@ -223,10 +237,28 @@ export function IdPhotoScreen({ navigation }: RootScreenProps<'IdPhoto'>) {
                   {BACKGROUNDS.map(b => {
                     const on = b.color === bg;
                     return (
-                      <Pressable key={b.key} accessibilityRole="button" accessibilityLabel={b.key} onPress={() => { haptics.light(); setBg(b.color); }}
+                      <Pressable key={b.key} accessibilityRole="button" accessibilityLabel={b.key} onPress={() => { haptics.light(); setBg(b.color); setCustomHex(''); }}
                         style={[styles.swatch, { backgroundColor: b.color, borderColor: on ? theme.colors.brand : theme.colors.border, borderWidth: on ? 3 : StyleSheet.hairlineWidth }]} />
                     );
                   })}
+                </View>
+                <Text variant="caption" color="textSecondary" style={styles.customLabel}>{hi ? 'कस्टम रंग कोड' : 'Custom colour code'}</Text>
+                <View style={styles.customRow}>
+                  <View style={[styles.customPreview, { backgroundColor: bg, borderColor: theme.colors.border }]} />
+                  <View style={[styles.hexBox, { borderColor: theme.colors.border, borderRadius: theme.radius.sm, backgroundColor: theme.colors.surfaceAlt }]}>
+                    <Text variant="body" color="textSecondary">#</Text>
+                    <TextInput
+                      value={customHex}
+                      onChangeText={applyCustom}
+                      placeholder="RRGGBB"
+                      placeholderTextColor={theme.colors.textTertiary}
+                      autoCapitalize="characters"
+                      autoCorrect={false}
+                      maxLength={6}
+                      accessibilityLabel={hi ? 'कस्टम हेक्स रंग' : 'Custom hex colour'}
+                      style={[styles.hexInput, { color: theme.colors.text }]}
+                    />
+                  </View>
                 </View>
               </>
             )}
@@ -255,5 +287,10 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
   chip: { paddingHorizontal: 14, paddingVertical: 9, minHeight: 40, justifyContent: 'center' },
   swatch: { width: 40, height: 40, borderRadius: 20 },
+  customLabel: { marginBottom: 8 },
+  customRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+  customPreview: { width: 40, height: 40, borderRadius: 8, borderWidth: StyleSheet.hairlineWidth },
+  hexBox: { flexDirection: 'row', alignItems: 'center', flex: 1, paddingHorizontal: 12, minHeight: 44, borderWidth: StyleSheet.hairlineWidth, gap: 2 },
+  hexInput: { flex: 1, minHeight: 44, fontSize: 15, letterSpacing: 1 },
   actions: { flexDirection: 'row', padding: 16, borderTopWidth: StyleSheet.hairlineWidth },
 });

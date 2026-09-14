@@ -32,9 +32,10 @@ react {
 }
 
 /**
- * R8/ProGuard is disabled for the current production release.
+ * R8/ProGuard + resource shrinking for release. Keep rules live in
+ * proguard-rules.pro (ML Kit / Play Services delivery classes are kept there).
  */
-def enableProguardInReleaseBuilds = false
+def enableProguardInReleaseBuilds = true
 
 /**
  * The preferred build flavor of JavaScriptCore (JSC)
@@ -52,8 +53,12 @@ android {
         applicationId "com.abhishek.documentScanner"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 9
-        versionName "1.0.8"
+        versionCode 10
+        versionName "1.0.9"
+
+        // App UI is only English + Hindi. Drop other locales' resources that
+        // ship inside androidx / play-services / ML Kit to shrink the build.
+        resourceConfigurations += ["en", "hi"]
     }
 
     signingConfigs {
@@ -79,8 +84,8 @@ android {
 
         release {
             signingConfig = signingConfigs.release
-            minifyEnabled = false
-            shrinkResources = false
+            minifyEnabled = enableProguardInReleaseBuilds
+            shrinkResources = enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
     }

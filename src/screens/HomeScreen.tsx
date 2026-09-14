@@ -6,9 +6,9 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 import LinearGradient from 'react-native-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  ScanLine, ImagePlus, Grid2x2, FilePen, RefreshCw, ScanText, ArrowRight, ChevronRight,
+  ScanLine, ImagePlus, FilePen, ScanText, ArrowRight, ChevronRight,
   FolderOpen, FileText, Download, RotateCw, User, ShieldCheck, Coffee, Sparkles,
-  BookOpen, Menu, Bell, Crown, Lock, Wand2, Layers, FileDown, Grid3x3, Check, Wifi, QrCode, LockKeyhole,
+  BookOpen, Menu, Bell, Crown, Lock, Wand2, Grid3x3, Check, Wifi, QrCode, LockKeyhole,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { Screen } from '../components/Screen';
@@ -43,7 +43,6 @@ export function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
   // layout holds from small phones (~320dp) to tablets, not just the emulator.
   const small = width < 360;
   const tablet = width >= 700;
-  const toolCols = tablet ? 4 : 2;
   const cardMinH = small ? 96 : 112;
 
   const openExternalPdf = async () => {
@@ -74,27 +73,19 @@ export function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
     }, []),
   );
 
+  // 2x2 Quick Actions — the primary tools after the Scan hero.
   const quick: AccentItem[] = [
-    { icon: FilePen, tint: theme.colors.brand, label: t('home.createPdf'), hint: t('home.createPdfSub'), onPress: importImages },
-    { icon: FolderOpen, tint: theme.colors.star, label: t('home.openPdf'), hint: t('home.openPdfBrowse'), onPress: openExternalPdf },
-    { icon: ImagePlus, tint: theme.colors.accent, label: t('home.imgToPdf'), hint: t('home.imgToPdfConv'), onPress: importImages },
-  ];
-
-  const qr: AccentItem[] = [
-    { icon: QrCode, tint: theme.colors.accent, label: t('qr.scanQr'), hint: t('qr.scanQrSub'), onPress: () => navigation.navigate('ScanQr') },
-    { icon: Grid3x3, tint: theme.colors.brand, label: t('qr.createQr'), hint: t('qr.createQrSub'), onPress: () => navigation.navigate('CreateQr') },
-    { icon: LockKeyhole, tint: theme.colors.star, label: t('qr.secretQr'), hint: t('qr.secretQrSub'), onPress: () => navigation.navigate('CreateQr', { mode: 'secret' }) },
-  ];
-
-  const tools: AccentItem[] = [
-    { icon: FilePen, tint: theme.colors.brand, label: t('home.pdfEditor'), hint: t('home.pdfEditorDesc'), onPress: () => setPdfSheet(true) },
-    { icon: ScanText, tint: theme.colors.accent, label: t('home.ocr'), hint: t('home.ocrSub'), onPress: ocrImage },
+    { icon: ImagePlus, tint: theme.colors.brand, label: t('home.createPdf'), hint: t('home.createPdfSub'), onPress: importImages },
     { icon: Wand2, tint: theme.colors.success, label: t('home.imageLab'), hint: t('home.imageLabSub'), onPress: imageLab },
-    { icon: Grid2x2, tint: theme.colors.star, label: t('home.collage'), hint: t('home.collageSub'), onPress: () => navigation.navigate('CollageStudio') },
-    { icon: RefreshCw, tint: theme.colors.warning, label: t('home.convertShort'), hint: t('home.convertDesc'), onPress: () => navigation.navigate('Convert') },
-    { icon: Layers, tint: theme.colors.brand, label: t('home.organize'), hint: t('home.organizeSub'), onPress: () => navigation.navigate('Documents') },
-    { icon: FileDown, tint: theme.colors.accent, label: t('home.compress'), hint: t('home.compressSub'), onPress: openExternalPdf },
-    { icon: Grid3x3, tint: theme.colors.textSecondary, label: t('home.moreTools'), hint: t('home.moreToolsSub'), onPress: () => navigation.navigate('Tools') },
+    { icon: FilePen, tint: theme.colors.accent, label: t('home.pdfEditor'), hint: t('home.pdfEditorDesc'), onPress: () => setPdfSheet(true) },
+    { icon: ScanText, tint: theme.colors.star, label: t('home.ocr'), hint: t('home.ocrSub'), onPress: ocrImage },
+  ];
+
+  // QR — compact strip, less weight than the primary tools.
+  const qr: AccentItem[] = [
+    { icon: QrCode, tint: theme.colors.accent, label: t('qr.scanQr'), hint: '', onPress: () => navigation.navigate('ScanQr') },
+    { icon: Grid3x3, tint: theme.colors.brand, label: t('qr.createQr'), hint: '', onPress: () => navigation.navigate('CreateQr') },
+    { icon: LockKeyhole, tint: theme.colors.star, label: t('qr.secretQr'), hint: '', onPress: () => navigation.navigate('CreateQr', { mode: 'secret' }) },
   ];
 
   return (
@@ -190,46 +181,64 @@ export function HomeScreen({ navigation }: RootScreenProps<'Home'>) {
         </Pressable>
       </Animated.View>
 
-      {/* quick actions */}
-      <View style={styles.quickRow}>
-        {quick.map((q, i) => (
-          <AccentCard key={q.label} {...q} i={i} theme={theme} compact minH={cardMinH} />
-        ))}
-      </View>
-
-      {/* QR Tools */}
+      {/* Quick Actions — 2x2 grid (2x4 on tablets) */}
       <View style={styles.sectionHead}>
         <View style={styles.rowCenter}>
-          <Text variant="title">{t('qr.section')}</Text>
-          <QrCode size={15} color={theme.colors.accent} style={styles.ml6} />
-        </View>
-      </View>
-      <View style={styles.quickRow}>
-        {qr.map((q, i) => (
-          <AccentCard key={q.label} {...q} i={i} theme={theme} compact minH={cardMinH} />
-        ))}
-      </View>
-
-      {/* Tools */}
-      <View style={styles.sectionHead}>
-        <View style={styles.rowCenter}>
-          <Text variant="title">{t('home.tools')}</Text>
+          <Text variant="title">{t('home.quickActions')}</Text>
           <Sparkles size={15} color={theme.colors.star} style={styles.ml6} />
         </View>
-        <Pressable onPress={() => navigation.navigate('Tools')} accessibilityRole="button" hitSlop={8} style={styles.rowCenter}>
-          <Text variant="callout" color="brand">{t('home.viewAll')}</Text>
-          <ChevronRight size={16} color={theme.colors.brand} />
-        </Pressable>
       </View>
-      <View style={[styles.toolsWrap, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderRadius: theme.radius.xl }]}>
-        <View style={styles.grid}>
-          {tools.map((tool, i) => (
-            <View key={tool.label} style={{ width: `${100 / toolCols}%` }}>
-              <AccentCard {...tool} i={i} theme={theme} grid />
-            </View>
+      <View style={styles.grid2}>
+        {quick.map((q, i) => (
+          <View key={q.label} style={tablet ? styles.quarter : styles.half}>
+            <AccentCard {...q} i={i} theme={theme} compact minH={cardMinH} />
+          </View>
+        ))}
+      </View>
+
+      {/* QR Tools — compact strip */}
+      <View style={[styles.qrCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderRadius: theme.radius.xl }]}>
+        <View style={styles.qrHeadRow}>
+          <View style={[styles.qrIcon, { backgroundColor: theme.colors.accent + '22', borderColor: theme.colors.accent + '3A', borderRadius: theme.radius.md }]}>
+            <QrCode size={18} color={theme.colors.accent} />
+          </View>
+          <Text variant="bodyStrong" style={styles.flex1}>{t('qr.section')}</Text>
+        </View>
+        <View style={styles.qrPills}>
+          {qr.map(q => (
+            <Pressable
+              key={q.label}
+              onPress={() => { haptics.light(); q.onPress(); }}
+              accessibilityRole="button"
+              accessibilityLabel={q.label}
+              style={({ pressed }) => [styles.qrPill, { backgroundColor: theme.colors.surfaceAlt, borderColor: q.tint + '55', borderRadius: theme.radius.md, opacity: pressed ? 0.6 : 1 }]}
+            >
+              <q.icon size={15} color={q.tint} />
+              <Text variant="label" numberOfLines={1} style={styles.qrPillText}>{q.label}</Text>
+            </Pressable>
           ))}
         </View>
       </View>
+
+      {/* More Tools — opens the full Tools screen */}
+      <Pressable
+        onPress={() => { haptics.light(); navigation.navigate('Tools'); }}
+        accessibilityRole="button"
+        accessibilityLabel={t('home.moreTools')}
+        style={({ pressed }) => [styles.moreCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderRadius: theme.radius.xl, opacity: pressed ? 0.8 : 1 }]}
+      >
+        <View style={[styles.accentIcon, { backgroundColor: theme.colors.star + '22', borderColor: theme.colors.star + '3A', borderRadius: theme.radius.md, marginBottom: 0 }]}>
+          <Sparkles size={20} color={theme.colors.star} />
+        </View>
+        <View style={styles.flex1}>
+          <Text variant="bodyStrong">{t('home.moreTools')}</Text>
+          <Text variant="caption" color="textSecondary" style={styles.moreSub}>{t('home.moreToolsSub')}</Text>
+        </View>
+        <View style={styles.rowCenter}>
+          <Text variant="callout" color="brand">{t('home.viewAll')}</Text>
+          <ChevronRight size={16} color={theme.colors.brand} />
+        </View>
+      </Pressable>
 
       {/* Recent Documents */}
       <View style={styles.sectionHead}>
@@ -385,6 +394,9 @@ const styles = StyleSheet.create({
   scanArrow: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
 
   quickRow: { flexDirection: 'row', gap: 10, marginBottom: 24 },
+  grid2: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 12, marginBottom: 20 },
+  half: { width: '48.5%' },
+  quarter: { width: '23.5%' },
   quickCard: { flex: 1, padding: 14, minHeight: 112 },
   gridCard: { padding: 12, minHeight: 118 },
   accentIcon: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center', marginBottom: 10, borderWidth: StyleSheet.hairlineWidth },
@@ -394,6 +406,16 @@ const styles = StyleSheet.create({
   sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   toolsWrap: { padding: 6, marginBottom: 24, borderWidth: StyleSheet.hairlineWidth },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
+
+  qrCard: { padding: 14, marginBottom: 16, borderWidth: StyleSheet.hairlineWidth },
+  qrHeadRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+  qrIcon: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', borderWidth: StyleSheet.hairlineWidth },
+  qrPills: { flexDirection: 'row', gap: 8 },
+  qrPill: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 6, borderWidth: StyleSheet.hairlineWidth },
+  qrPillText: { flexShrink: 1 },
+
+  moreCard: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, marginBottom: 24, borderWidth: StyleSheet.hairlineWidth },
+  moreSub: { marginTop: 2 },
 
   empty: { alignItems: 'center', padding: 24, marginBottom: 24, borderWidth: StyleSheet.hairlineWidth },
   emptyBadge: { width: 64, height: 64, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
