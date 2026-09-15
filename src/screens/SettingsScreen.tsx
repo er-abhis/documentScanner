@@ -18,7 +18,7 @@ import { useI18n } from '../i18n';
 import { haptics } from '../lib/haptics';
 import { rateApp, shareApp } from '../services/sharing';
 import { getPrefs, setPref } from '../services/prefs';
-import { checkForUpdate, startFlexibleUpdate, installFlexibleUpdate } from '../services/update';
+import { checkForUpdate, startFlexibleUpdate, installFlexibleUpdate, appVersion } from '../services/update';
 import type { ThemePref, LangPref } from '../services/prefs';
 import type { RootScreenProps } from '../types/navigation';
 
@@ -76,7 +76,7 @@ export function SettingsScreen({ navigation }: RootScreenProps<'Settings'>) {
 
       <Card style={styles.group}>
         <Row icon={ShieldCheck} label={t('settings.processing')} value={t('settings.onDevice')} />
-        <Row icon={Info} label={t('settings.version')} value="1.0.0" last />
+        <Row icon={Info} label={t('settings.version')} value={appVersion || '1.1.0'} last />
       </Card>
 
       <Card style={styles.group}>

@@ -27,6 +27,14 @@ class PlayUpdateModule(private val ctx: ReactApplicationContext) :
 
   override fun getName() = "PlayUpdate"
 
+  // Expose the real app version straight from BuildConfig so the UI (Settings)
+  // can never drift from the versionName/versionCode in build.gradle.
+  override fun getConstants(): MutableMap<String, Any> =
+    hashMapOf(
+      "versionName" to BuildConfig.VERSION_NAME,
+      "versionCode" to BuildConfig.VERSION_CODE,
+    )
+
   @ReactMethod
   fun checkForUpdate(promise: Promise) {
     manager.appUpdateInfo

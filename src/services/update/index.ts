@@ -5,8 +5,16 @@ const { PlayUpdate } = NativeModules as {
     checkForUpdate(): Promise<boolean>;
     startFlexibleUpdate(): Promise<boolean>;
     completeUpdate(): void;
+    /** native BuildConfig constants (Android) */
+    versionName?: string;
+    versionCode?: number;
   };
 };
+
+/** Real app version from native BuildConfig — single source of truth, always in
+ * sync with build.gradle. Empty string if the native module isn't present. */
+export const appVersion: string = PlayUpdate?.versionName ?? '';
+export const appVersionCode: number = PlayUpdate?.versionCode ?? 0;
 
 const emitter = PlayUpdate ? new NativeEventEmitter(NativeModules.PlayUpdate) : null;
 
