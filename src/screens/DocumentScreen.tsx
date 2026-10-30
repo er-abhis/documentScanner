@@ -41,7 +41,7 @@ export function DocumentScreen({ route, navigation }: RootScreenProps<'Document'
         uri = await generateDocumentPdf(doc.id);
         setMakingPdf(false);
       }
-      navigation.navigate('PdfPreview', { uri, name: doc.name });
+      navigation.navigate('PdfPreview', { uri, name: doc.name, editable: true });
     } catch {
       setMakingPdf(false);
       toast({ variant: 'error', message: t('docs.shareFailSub') });
@@ -127,43 +127,89 @@ export function DocumentScreen({ route, navigation }: RootScreenProps<'Document'
           }
         />
         <Text variant="caption" color="textSecondary" style={styles.sub}>
-          {lang === 'hi' ? `${uris.length} पेज` : `${uris.length} page${uris.length === 1 ? '' : 's'}`}
+          {uris.length === 0 ? 'PDF' : lang === 'hi' ? `${uris.length} पेज` : `${uris.length} page${uris.length === 1 ? '' : 's'}`}
         </Text>
       </View>
-      <FlatList
-        data={uris}
-        keyExtractor={(u, i) => `${u}-${i}`}
-        numColumns={2}
-        columnWrapperStyle={styles.rowGap}
-        contentContainerStyle={styles.grid}
-        initialNumToRender={6}
-        windowSize={5}
-        removeClippedSubviews
-        renderItem={({ item, index }) => (
-          <Animated.View
-            entering={FadeIn.delay(Math.min(index, 10) * 40)}
-            style={styles.cell}
+
+      {uris.length === 0 ? (
+        <View style={styles.singleDocCardWrap}>
+          <View
+            style={[
+              styles.singleDocCard,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+                borderRadius: theme.radius.xl,
+              },
+              theme.elevation(2),
+            ]}
           >
-            <Pressable
-              accessibilityRole="imagebutton"
-              accessibilityLabel={`Page ${index + 1}`}
-              onPress={() =>
-                navigation.navigate('PagePreview', { uri: item, index, total: uris.length })
-              }
+            <View style={[styles.pdfIconCircle, { backgroundColor: theme.colors.brandSubtle }]}>
+              <FileText size={44} color={theme.colors.brand} />
+            </View>
+            <Text variant="title" style={styles.docTitle} numberOfLines={2}>
+              {doc.name}
+            </Text>
+            <Text variant="caption" color="textSecondary" style={styles.docSub}>
+              {new Date(doc.updatedAt).toLocaleDateString()} · PDF
+            </Text>
+            <View style={styles.quickActionPills}>
+              <Pressable
+                onPress={openPdf}
+                android_ripple={{ color: theme.colors.border }}
+                style={[styles.actionPill, { backgroundColor: theme.colors.surfaceAlt, borderColor: theme.colors.border }]}
+              >
+                <FileText size={16} color={theme.colors.brand} />
+                <Text variant="callout" color="brand">{t('doc.viewPdf')}</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => navigation.navigate('PdfEditor', { id })}
+                android_ripple={{ color: theme.colors.border }}
+                style={[styles.actionPill, { backgroundColor: theme.colors.surfaceAlt, borderColor: theme.colors.border }]}
+              >
+                <Pen size={16} color={theme.colors.brand} />
+                <Text variant="callout" color="brand">{t('doc.editPdf')}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      ) : (
+        <FlatList
+          data={uris}
+          keyExtractor={(u, i) => `${u}-${i}`}
+          numColumns={2}
+          columnWrapperStyle={styles.rowGap}
+          contentContainerStyle={styles.grid}
+          initialNumToRender={6}
+          windowSize={5}
+          removeClippedSubviews
+          renderItem={({ item, index }) => (
+            <Animated.View
+              entering={FadeIn.delay(Math.min(index, 10) * 40)}
+              style={styles.cell}
             >
-              <Image
-                source={{ uri: item }}
-                style={[styles.thumb, { borderColor: theme.colors.border, borderRadius: theme.radius.md }]}
-                resizeMode="cover"
-                resizeMethod="resize"
-              />
-              <Text variant="label" color="textTertiary" style={styles.pageLabel}>
-                {t('doc.page')} {index + 1}
-              </Text>
-            </Pressable>
-          </Animated.View>
-        )}
-      />
+              <Pressable
+                accessibilityRole="imagebutton"
+                accessibilityLabel={`Page ${index + 1}`}
+                onPress={() =>
+                  navigation.navigate('PagePreview', { uri: item, index, total: uris.length })
+                }
+              >
+                <Image
+                  source={{ uri: item }}
+                  style={[styles.thumb, { borderColor: theme.colors.border, borderRadius: theme.radius.md }]}
+                  resizeMode="cover"
+                  resizeMethod="resize"
+                />
+                <Text variant="label" color="textTertiary" style={styles.pageLabel}>
+                  {t('doc.page')} {index + 1}
+                </Text>
+              </Pressable>
+            </Animated.View>
+          )}
+        />
+      )}
+
       <View style={[styles.footer, { borderTopColor: theme.colors.border }]}>
         <Button
           title={doc.pdfFile ? t('doc.viewPdf') : t('doc.createPdf')}
@@ -180,6 +226,48 @@ const styles = StyleSheet.create({
   headActions: { flexDirection: 'row' },
   sub: { marginLeft: 4, marginBottom: spacing.sm },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  singleDocCardWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xl,
+  },
+  singleDocCard: {
+    width: '100%',
+    alignItems: 'center',
+    paddingVertical: 36,
+    paddingHorizontal: 24,
+    borderWidth: 1,
+  },
+  pdfIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  docTitle: {
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  docSub: {
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  quickActionPills: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  actionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
   grid: { paddingHorizontal: spacing.xl, paddingBottom: spacing.xl },
   rowGap: { gap: spacing.md },
   cell: { flex: 1, marginBottom: spacing.md, alignItems: 'center' },

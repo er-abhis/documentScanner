@@ -119,7 +119,7 @@ export function QrResultScreen({ route, navigation }: RootScreenProps<'QrResult'
             ) : null}
           </Animated.View>
         ) : (
-          <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderRadius: theme.radius.lg }]}>
+          <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderRadius: theme.radius.xl }, theme.elevation(1)]}>
             <Text variant="caption" color="textSecondary">{t('qr.content')}</Text>
             <Text variant="body" selectable style={styles.value}>{shown}</Text>
           </View>

@@ -45,7 +45,17 @@ export function ActionSheet({ visible, title, actions, onClose }: Props) {
             <ASheet
               entering={SlideInDown.springify().damping(22).stiffness(220).mass(0.9)}
               exiting={SlideOutDown.duration(EXIT_MS)}
-              style={[styles.sheet, { backgroundColor: theme.colors.surface, borderTopLeftRadius: theme.radius.lg, borderTopRightRadius: theme.radius.lg }, theme.elevation(3)]}
+              style={[
+                styles.sheet,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderTopLeftRadius: theme.radius.xl,
+                  borderTopRightRadius: theme.radius.xl,
+                  borderColor: theme.colors.border,
+                  borderWidth: theme.mode === 'dark' ? StyleSheet.hairlineWidth : 0,
+                },
+                theme.elevation(3),
+              ]}
             >
               <SafeAreaView edges={['bottom']}>
                 <View style={[styles.grabber, { backgroundColor: theme.colors.borderStrong }]} />

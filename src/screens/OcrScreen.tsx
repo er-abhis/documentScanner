@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Clipboard from '@react-native-clipboard/clipboard';
 import { Copy, Share2, FileText } from 'lucide-react-native';
 import { Screen } from '../components/Screen';
@@ -23,6 +24,7 @@ export function OcrScreen({ route, navigation }: RootScreenProps<'Ocr'>) {
   const { t, lang } = useI18n();
   const toast = useToast();
   const { uri, name, kind } = route.params;
+  const insets = useSafeAreaInsets();
 
   const [status, setStatus] = useState<'running' | 'ready' | 'empty' | 'error'>('running');
   const [progress, setProgress] = useState('');
@@ -108,7 +110,16 @@ export function OcrScreen({ route, navigation }: RootScreenProps<'Ocr'>) {
         />
       </ScrollView>
 
-      <View style={[styles.bar, { backgroundColor: theme.colors.surface, borderTopColor: theme.colors.border }]}>
+      <View
+        style={[
+          styles.bar,
+          {
+            backgroundColor: theme.colors.surface,
+            borderTopColor: theme.colors.border,
+            paddingBottom: Math.max(16, insets.bottom),
+          },
+        ]}
+      >
         <Button title={t('common.copy')} icon={Copy} variant="secondary" fullWidth={false} style={styles.flex1} onPress={copy} />
         <Button title={t('common.share')} icon={Share2} variant="secondary" fullWidth={false} style={[styles.flex1, styles.gap]} onPress={() => shareText(text)} />
         <Button title={t('ocr.savePdf')} icon={FileText} fullWidth={false} style={[styles.flex1, styles.gap]} onPress={saveAsPdf} />

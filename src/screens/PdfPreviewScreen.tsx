@@ -56,7 +56,7 @@ type Fit = typeof FIT_WIDTH | typeof FIT_PAGE;
 export function PdfPreviewScreen({ route, navigation }: RootScreenProps<'PdfPreview'>) {
   const theme = useTheme();
   const t = useT();
-  const { uri, name, editable } = route.params;
+  const { uri, name, editable = true } = route.params;
   // Mount the native PDF view only after the push animation completes.
   const ready = useDeferredMount();
   const pdfRef = useRef<React.ComponentRef<typeof Pdf>>(null);
