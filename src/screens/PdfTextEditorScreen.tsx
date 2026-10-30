@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 
@@ -24,7 +24,10 @@ import type { RootScreenProps } from '../types/navigation';
 
 type SelMeta = {
   page: number; str: string; x: number; yTop: number; w: number;
-  fontSize: number; fontName: string; pageW: number; pageH: number;
+  fontSize: number; fontName: string; fontFamily?: string;
+  isBold?: boolean; isItalic?: boolean;
+  color?: string; bgColor?: string;
+  pageW: number; pageH: number;
 };
 
 export function PdfTextEditorScreen({ route, navigation }: RootScreenProps<'PdfTextEditor'>) {
@@ -74,7 +77,7 @@ export function PdfTextEditorScreen({ route, navigation }: RootScreenProps<'PdfT
       if (!m.meta || typeof m.meta !== 'object') return;
       setSel({ meta: m.meta, id: m.id });
       setDraft(typeof m.meta.str === 'string' ? m.meta.str : '');
-      setColor('#111111');
+      setColor(m.meta.color || '#111111');
     } else if (m.type === 'error') {
       setLoading(false);
       toast({ variant: 'error', message: m.message ?? t('pdfTextEditor.unknownError') });
@@ -86,13 +89,42 @@ export function PdfTextEditorScreen({ route, navigation }: RootScreenProps<'PdfT
     if (!sel) return;
     const { meta, id } = sel;
     const edit: PdfTextEdit & { id: string } = {
-      id, page: meta.page, orig: meta.str, x: meta.x, yTop: meta.yTop, w: meta.w,
-      fontSize: meta.fontSize, fontName: meta.fontName, newText, color,
+      id,
+      page: meta.page,
+      orig: meta.str,
+      x: meta.x,
+      yTop: meta.yTop,
+      w: meta.w,
+      fontSize: meta.fontSize,
+      fontName: meta.fontName,
+      fontFamily: meta.fontFamily,
+      isBold: meta.isBold,
+      isItalic: meta.isItalic,
+      newText,
+      color,
+      bgColor: meta.bgColor,
     };
     setEdits(prev => [...prev.filter(x => x.id !== id), edit]);
-    post({ type: 'edited', id, deleted: newText === null, text: newText });
+    post({
+      type: 'edited',
+      id,
+      deleted: newText === null,
+      text: newText,
+      color,
+      bgColor: meta.bgColor,
+      fontFamily: meta.fontFamily,
+      isBold: meta.isBold,
+      isItalic: meta.isItalic,
+    });
     setSel(null);
   };
+
+  const swatches = useMemo(() => {
+    if (sel?.meta.color && !PEN_COLORS.includes(sel.meta.color)) {
+      return [sel.meta.color, ...PEN_COLORS];
+    }
+    return PEN_COLORS;
+  }, [sel?.meta.color]);
 
   const save = async () => {
     if (edits.length === 0) {
@@ -183,7 +215,10 @@ export function PdfTextEditorScreen({ route, navigation }: RootScreenProps<'PdfT
             <Text variant="title" style={styles.sheetTitle}>{t('pdfTextEditor.editText')}</Text>
             {sel && (
               <Text variant="caption" color="textSecondary" style={styles.detected}>
-                {t('pdfTextEditor.detected')} · {cleanFont(sel.meta.fontName, t('pdfTextEditor.embeddedFont'))} · {Math.round(sel.meta.fontSize)} {t('pdfTextEditor.pt')}
+                {t('pdfTextEditor.detected')} · {cleanFont(sel.meta.fontName, t('pdfTextEditor.embeddedFont'))}
+                {sel.meta.isBold ? ' (Bold)' : ''}
+                {sel.meta.isItalic ? ' (Italic)' : ''}
+                {' · '}{Math.round(sel.meta.fontSize)} {t('pdfTextEditor.pt')}
               </Text>
             )}
             <TextInput
@@ -191,10 +226,20 @@ export function PdfTextEditorScreen({ route, navigation }: RootScreenProps<'PdfT
               onChangeText={setDraft}
               autoFocus
               multiline
-              style={[styles.input, { color: theme.colors.text, backgroundColor: theme.colors.surfaceAlt, borderRadius: theme.radius.md }]}
+              style={[
+                styles.input,
+                {
+                  color,
+                  fontWeight: sel?.meta.isBold ? '700' : '400',
+                  fontStyle: sel?.meta.isItalic ? 'italic' : 'normal',
+                  fontFamily: sel?.meta.fontFamily === 'serif' ? 'serif' : sel?.meta.fontFamily === 'monospace' ? 'monospace' : 'sans-serif',
+                  backgroundColor: theme.colors.surfaceAlt,
+                  borderRadius: theme.radius.md,
+                },
+              ]}
             />
             <View style={styles.swatches}>
-              {PEN_COLORS.map(c => (
+              {swatches.map(c => (
                 <Pressable key={c} onPress={() => setColor(c)} hitSlop={HIT_SLOP}
                   style={[styles.swatch, { backgroundColor: c, borderColor: color === c ? theme.colors.brand : theme.colors.border, borderWidth: color === c ? 3 : StyleSheet.hairlineWidth }]} />
               ))}

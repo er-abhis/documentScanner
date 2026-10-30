@@ -127,7 +127,11 @@ export function PdfEditorScreen({ route, navigation }: RootScreenProps<'PdfEdito
   const placeText = (pt: Pt) => setTextModal({ mode: 'new', pt });
   const selectText = (id: string) => {
     const target = anns.find(a => a.id === id);
-    if (target && target.kind === 'text') setTextModal({ mode: 'edit', id, initial: target.text });
+    if (target && target.kind === 'text') {
+      setDrawColor(target.color);
+      setTextSize(Math.max(16, Math.min(96, Math.round(target.size * 1000))));
+      setTextModal({ mode: 'edit', id, initial: target.text });
+    }
   };
   const moveText = (id: string, pt: Pt) =>
     setByPage(prev => ({ ...prev, [page]: (prev[page] ?? []).map(a => (a.id === id && a.kind === 'text' ? { ...a, x: pt.x, y: pt.y } : a)) }));
@@ -136,7 +140,7 @@ export function PdfEditorScreen({ route, navigation }: RootScreenProps<'PdfEdito
     if (textModal.mode === 'new') {
       commit({ id: `t${Date.now()}`, kind: 'text', text, x: textModal.pt.x, y: textModal.pt.y, size: textSize / 1000, color: drawColor, opacity: 1 });
     } else {
-      setAnns(anns.map(a => (a.id === textModal.id && a.kind === 'text' ? { ...a, text } : a)));
+      setAnns(anns.map(a => (a.id === textModal.id && a.kind === 'text' ? { ...a, text, color: drawColor, size: textSize / 1000 } : a)));
     }
     setTextModal(null);
   };

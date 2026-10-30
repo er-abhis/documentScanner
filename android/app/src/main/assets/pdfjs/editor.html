@@ -10,7 +10,8 @@
   .tl { position:absolute; top:0; left:0; }
   .tl span { position:absolute; white-space:pre; color:transparent; cursor:pointer; transform-origin:0 0; }
   .tl span.sel { background:rgba(46,107,255,0.20); outline:1px solid #2E6BFF; color:transparent; }
-  .edited { background:rgba(46,180,120,0.18); outline:1px solid #2EB478; }
+  .edited { box-sizing:border-box; padding:0 2px; z-index:10; }
+  .edited.deleted { opacity:0.9; z-index:10; }
 </style>
 </head>
 <body>
@@ -34,6 +35,77 @@ const post = (m) => {
 };
 let doc = null;
 
+function sampleColors(ctx, x, y, w, h, cvW, cvH) {
+  try {
+    const sx = Math.max(0, Math.min(cvW - 1, Math.floor(x - 2)));
+    const sy = Math.max(0, Math.min(cvH - 1, Math.floor(y - 2)));
+    const sw = Math.max(1, Math.min(cvW - sx, Math.ceil(w + 4)));
+    const sh = Math.max(1, Math.min(cvH - sy, Math.ceil(h + 4)));
+    const imgData = ctx.getImageData(sx, sy, sw, sh);
+    const data = imgData.data;
+
+    const bgBins = {};
+    const addBg = (r, g, b) => {
+      const qr = Math.round(r / 10) * 10;
+      const qg = Math.round(g / 10) * 10;
+      const qb = Math.round(b / 10) * 10;
+      const key = `${qr},${qg},${qb}`;
+      bgBins[key] = (bgBins[key] || 0) + 1;
+    };
+
+    for (let c = 0; c < sw; c += 2) {
+      const topIdx = c * 4;
+      addBg(data[topIdx], data[topIdx + 1], data[topIdx + 2]);
+      const botIdx = ((sh - 1) * sw + c) * 4;
+      addBg(data[botIdx], data[botIdx + 1], data[botIdx + 2]);
+    }
+    for (let r = 0; r < sh; r += 2) {
+      const leftIdx = (r * sw) * 4;
+      addBg(data[leftIdx], data[leftIdx + 1], data[leftIdx + 2]);
+      const rightIdx = (r * sw + (sw - 1)) * 4;
+      addBg(data[rightIdx], data[rightIdx + 1], data[rightIdx + 2]);
+    }
+
+    let maxBgCount = -1;
+    let bgRgb = [255, 255, 255];
+    for (const [k, count] of Object.entries(bgBins)) {
+      if (count > maxBgCount) {
+        maxBgCount = count;
+        bgRgb = k.split(',').map(Number);
+      }
+    }
+
+    const textBins = {};
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
+      if (a < 128) continue;
+      const dist = Math.hypot(r - bgRgb[0], g - bgRgb[1], b - bgRgb[2]);
+      if (dist > 35) {
+        const qr = Math.round(r / 10) * 10;
+        const qg = Math.round(g / 10) * 10;
+        const qb = Math.round(b / 10) * 10;
+        const key = `${qr},${qg},${qb}`;
+        if (!textBins[key]) textBins[key] = { count: 0, r, g, b, dist };
+        textBins[key].count++;
+      }
+    }
+
+    let maxTextCount = 0;
+    let textRgb = [17, 17, 17];
+    for (const item of Object.values(textBins)) {
+      if (item.count > maxTextCount) {
+        maxTextCount = item.count;
+        textRgb = [item.r, item.g, item.b];
+      }
+    }
+
+    const toHex = ([r, g, b]) => '#' + [r, g, b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+    return { textColor: toHex(textRgb), bgColor: toHex(bgRgb) };
+  } catch (_) {
+    return { textColor: '#111111', bgColor: '#ffffff' };
+  }
+}
+
 async function load(b64) {
   try {
     const data = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
@@ -56,7 +128,8 @@ async function load(b64) {
       cv.width = vp.width; cv.height = vp.height;
       wrap.appendChild(cv);
       root.appendChild(wrap);
-      await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+      const ctx = cv.getContext('2d', { willReadFrequently: true });
+      await page.render({ canvasContext: ctx, viewport: vp }).promise;
 
       const tc = await page.getTextContent();
       if (tc.items.length) hasText = true;
@@ -70,16 +143,38 @@ async function load(b64) {
         const t1 = pdfjs.Util.transform(vp1.transform, it.transform); // pdf-point coords (top-left origin)
         const fsD = Math.hypot(t[0], t[1]);
         const fs1 = Math.hypot(it.transform[0], it.transform[1]);
+
+        const fontStyle = tc.styles ? tc.styles[it.fontName] : null;
+        const fn = ((it.fontName || '') + ' ' + (fontStyle && fontStyle.fontFamily || '')).toLowerCase();
+        const isBold = /bold|black|heavy|semibold|700|800|900/.test(fn);
+        const isItalic = /italic|oblique/.test(fn);
+        const isSerif = /serif|times|georgia|roman|minion|garamond|cambria/.test(fn);
+        const isMono = /mono|courier|consol|code/.test(fn);
+        const fontFamily = isMono ? 'monospace' : isSerif ? 'serif' : 'sans-serif';
+
+        const approxW = Math.max(8, (it.width || it.str.length * fs1 * 0.55) * SCALE);
+        const colors = sampleColors(ctx, t[4], t[5] - fsD, approxW, fsD, vp.width, vp.height);
+
         const span = document.createElement('span');
         span.textContent = it.str;
         span.style.left = t[4] + 'px';
         span.style.top = (t[5] - fsD) + 'px';
         span.style.fontSize = fsD + 'px';
         span.style.lineHeight = fsD + 'px';
+        span.style.fontFamily = fontFamily;
+        if (isBold) span.style.fontWeight = 'bold';
+        if (isItalic) span.style.fontStyle = 'italic';
+
         span.dataset.meta = JSON.stringify({
           page: i, str: it.str,
           x: t1[4], yTop: t1[5], w: it.width, fontSize: fs1,
-          fontName: it.fontName || '', pageW: vp1.width, pageH: vp1.height,
+          fontName: it.fontName || '',
+          fontFamily,
+          isBold,
+          isItalic,
+          color: colors.textColor,
+          bgColor: colors.bgColor,
+          pageW: vp1.width, pageH: vp1.height,
         });
         span.onclick = () => {
           document.querySelectorAll('.tl span.sel').forEach(s => s.classList.remove('sel'));
@@ -97,19 +192,32 @@ async function load(b64) {
 }
 
 // mark a span as edited/deleted for visual feedback
-function markEdited(id, deleted, text) {
+function markEdited(id, deleted, text, color, bgColor, fontFamily, isBold, isItalic) {
   const el = document.getElementById(id);
   if (!el) return;
   el.classList.remove('sel');
   el.classList.add('edited');
-  el.style.color = deleted ? 'transparent' : '#0B1524';
-  el.style.textDecoration = deleted ? 'line-through' : 'none';
-  if (!deleted && text != null) el.textContent = text;
+  const bg = bgColor || '#ffffff';
+  el.style.backgroundColor = bg;
+  if (deleted) {
+    el.classList.add('deleted');
+    el.textContent = '';
+    el.style.color = 'transparent';
+    el.style.border = '1px dashed #E04040';
+  } else {
+    el.classList.remove('deleted');
+    el.style.color = color || '#111111';
+    el.style.fontFamily = fontFamily || 'sans-serif';
+    el.style.fontWeight = isBold ? 'bold' : 'normal';
+    el.style.fontStyle = isItalic ? 'italic' : 'normal';
+    el.style.border = '1px solid #2EB478';
+    if (text != null) el.textContent = text;
+  }
 }
 
 function handle(m) {
   if (m.type === 'load') load(m.b64);
-  else if (m.type === 'edited') markEdited(m.id, m.deleted, m.text);
+  else if (m.type === 'edited') markEdited(m.id, m.deleted, m.text, m.color, m.bgColor, m.fontFamily, m.isBold, m.isItalic);
 }
 window.addEventListener('message', e => { try { handle(JSON.parse(e.data)); } catch (_) {} });
 document.addEventListener('message', e => { try { handle(JSON.parse(e.data)); } catch (_) {} });

@@ -23,29 +23,33 @@ import {
   Blur,
   RuntimeShader,
   useImage,
+  Group,
 } from '@shopify/react-native-skia';
+import LinearGradient from 'react-native-linear-gradient';
 import {
-  RotateCw,
-  RefreshCcw,
+  ChevronLeft,
   Check,
   Crop,
   SlidersHorizontal,
-  FlipHorizontal2,
-  FlipVertical2,
-  Wand2,
-  Eye,
+  ScanText,
   Undo2,
   Redo2,
+  RotateCw,
+  RotateCcw,
+  RefreshCcw,
+  FlipHorizontal2,
+  FlipVertical2,
+  MoreHorizontal,
+  Wand2,
+  Eye,
   Sparkles,
-  ScanText,
 } from 'lucide-react-native';
 import { Screen } from '../components/Screen';
-import { Header } from '../components/Header';
 import { Text } from '../components/Text';
-import { Button } from '../components/Button';
 import { Slider } from '../components/Slider';
 import { LoadingState } from '../components/LoadingState';
 import { useToast } from '../components/Toast';
+import { ActionSheet, type SheetAction } from '../components/ActionSheet';
 import { warpDocument, type Quad } from '../services/image/perspective';
 import { detailImageFilter, previewBlurSigma } from '../services/image/detail';
 import { toneImageFilter, TONE_EFFECT } from '../services/image/tone';
@@ -55,7 +59,7 @@ import {
   buildMatrix,
   type FilterKey,
 } from '../services/image/filters';
-import { useTheme } from '../theme';
+import { useTheme, HIT_SLOP } from '../theme';
 import { useT } from '../i18n';
 import type { RootScreenProps } from '../types/navigation';
 
@@ -75,7 +79,7 @@ type Adj = {
   rotation: number;
 };
 const HANDLE = 28;
-const TOUCH = 48;
+const TOUCH = 52;
 
 /** Aspect-ratio crop presets (label + width/height ratio; null = free crop). */
 const CROP_RATIOS: { label: string; ar: number | null }[] = [
@@ -138,6 +142,9 @@ export function EditorScreen({ route, navigation }: RootScreenProps<'Editor'>) {
   const [cleanedUri, setCleanedUri] = useState<string | null>(null);
   const [cleanOn, setCleanOn] = useState(false);
   const [cleaning, setCleaning] = useState(false);
+  const [selectedRatio, setSelectedRatio] = useState<string>('Free');
+  const [moreMenuVisible, setMoreMenuVisible] = useState(false);
+
   // The image the editor operates on: cleaned document, or the original.
   const workUri = cleanOn && cleanedUri ? cleanedUri : uri;
 
@@ -145,6 +152,7 @@ export function EditorScreen({ route, navigation }: RootScreenProps<'Editor'>) {
     (): Adj => ({ filter, brightness, contrast, saturation, warmth, detail, shadows, highlights, flipH, flipV, rotation }),
     [filter, brightness, contrast, saturation, warmth, detail, shadows, highlights, flipH, flipV, rotation],
   );
+
   const restore = useCallback((a: Adj) => {
     setFilter(a.filter);
     setBrightness(a.brightness);
@@ -158,12 +166,14 @@ export function EditorScreen({ route, navigation }: RootScreenProps<'Editor'>) {
     setFlipV(a.flipV);
     setRotation(a.rotation);
   }, []);
+
   // Snapshot the pre-change state; call before any discrete edit / at drag start.
   const commit = useCallback(() => {
     const cur = snapshot();
     setUndoStack(s => (s.length && adjEqual(s[s.length - 1], cur) ? s : [...s.slice(-49), cur]));
     setRedoStack([]);
   }, [snapshot]);
+
   const undo = useCallback(() => {
     setUndoStack(s => {
       if (!s.length) return s;
@@ -172,6 +182,7 @@ export function EditorScreen({ route, navigation }: RootScreenProps<'Editor'>) {
       return s.slice(0, -1);
     });
   }, [snapshot, restore]);
+
   const redo = useCallback(() => {
     setRedoStack(r => {
       if (!r.length) return r;
@@ -329,6 +340,51 @@ export function EditorScreen({ route, navigation }: RootScreenProps<'Editor'>) {
     }
   };
 
+  const isRotated90or270 = rotation === 90 || rotation === 270;
+
+  const moreActions: SheetAction[] = useMemo(() => [
+    {
+      label: t('editor.resetCorners') || 'Reset corners',
+      icon: RefreshCcw,
+      onPress: () => {
+        resetCorners();
+        setSelectedRatio('Free');
+      },
+    },
+    {
+      label: cleanOn ? (t('editor.cleanupOn') || 'Document Cleaned (Active)') : (t('editor.cleanup') || 'Clean up document'),
+      icon: Sparkles,
+      onPress: toggleClean,
+    },
+    {
+      label: t('editor.autoEnhance') || 'Auto Enhance',
+      icon: Wand2,
+      onPress: autoEnhance,
+    },
+    {
+      label: t('editor.resetAll') || 'Reset all changes',
+      icon: RotateCcw,
+      destructive: true,
+      onPress: () => {
+        commit();
+        setRotation(0);
+        setFlipH(false);
+        setFlipV(false);
+        setFilter('original');
+        setBrightness(0);
+        setContrast(0);
+        setSaturation(0);
+        setWarmth(0);
+        setDetail(0);
+        setShadows(0);
+        setHighlights(0);
+        setCleanOn(false);
+        resetCorners();
+        setSelectedRatio('Free');
+      },
+    },
+  ], [t, resetCorners, cleanOn, toggleClean, autoEnhance, commit]);
+
   if (busy) {
     return (
       <Screen center>
@@ -339,41 +395,117 @@ export function EditorScreen({ route, navigation }: RootScreenProps<'Editor'>) {
 
   return (
     <Screen padded={false}>
-      <View style={styles.headerPad}>
-        <Header title={t('editor.title')} onBack={() => navigation.goBack()} />
-        <View style={styles.tabRow}>
-          <View style={styles.segWrap}>
-            <SegTabs mode={mode} onChange={setMode} />
-          </View>
-          <Pressable
-            onPress={() => navigation.navigate('Ocr', { uri: workUri, name: 'Image', kind: 'image' })}
-            accessibilityRole="button"
-            accessibilityLabel={t('editor.extractText')}
-            style={styles.iconBtn}
-          >
-            <ScanText size={20} color={theme.colors.text} />
-          </Pressable>
-          <Pressable
-            onPress={undo}
-            disabled={!undoStack.length}
-            accessibilityRole="button"
-            accessibilityLabel={t('editor.undo')}
-            style={[styles.iconBtn, { opacity: undoStack.length ? 1 : 0.35 }]}
-          >
-            <Undo2 size={20} color={theme.colors.text} />
-          </Pressable>
-          <Pressable
-            onPress={redo}
-            disabled={!redoStack.length}
-            accessibilityRole="button"
-            accessibilityLabel={t('editor.redo')}
-            style={[styles.iconBtn, { opacity: redoStack.length ? 1 : 0.35 }]}
-          >
-            <Redo2 size={20} color={theme.colors.text} />
-          </Pressable>
-        </View>
+      {/* 1. Sleek Top Header */}
+      <View style={styles.topHeader}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          hitSlop={HIT_SLOP}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          style={styles.headerBtn}
+        >
+          <ChevronLeft size={24} color={theme.colors.text} />
+        </Pressable>
+        <Text variant="title" style={styles.headerTitle}>
+          {t('editor.title')}
+        </Text>
+        <Pressable
+          onPress={confirm}
+          hitSlop={HIT_SLOP}
+          accessibilityRole="button"
+          accessibilityLabel={t('editor.apply')}
+          style={styles.headerBtn}
+        >
+          <Check size={22} color={theme.colors.brand} />
+        </Pressable>
       </View>
 
+      {/* 2. Top Sub-Navigation Bar: Crop, Filters, OCR, Undo, Redo */}
+      <View style={[styles.subNavBar, { borderBottomColor: theme.colors.border }]}>
+        <Pressable
+          onPress={() => setMode('crop')}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: mode === 'crop' }}
+          style={[
+            styles.subNavItem,
+            mode === 'crop' && [styles.subNavActiveItem, { backgroundColor: theme.colors.brandSubtle }],
+          ]}
+        >
+          <Crop size={16} color={mode === 'crop' ? theme.colors.brand : theme.colors.textSecondary} />
+          <Text
+            variant="callout"
+            style={[
+              styles.subNavText,
+              { color: mode === 'crop' ? theme.colors.brand : theme.colors.textSecondary },
+              mode === 'crop' && styles.subNavActiveText,
+            ]}
+          >
+            {t('editor.crop')}
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => setMode('filter')}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: mode === 'filter' }}
+          style={[
+            styles.subNavItem,
+            mode === 'filter' && [styles.subNavActiveItem, { backgroundColor: theme.colors.brandSubtle }],
+          ]}
+        >
+          <SlidersHorizontal size={16} color={mode === 'filter' ? theme.colors.brand : theme.colors.textSecondary} />
+          <Text
+            variant="callout"
+            style={[
+              styles.subNavText,
+              { color: mode === 'filter' ? theme.colors.brand : theme.colors.textSecondary },
+              mode === 'filter' && styles.subNavActiveText,
+            ]}
+          >
+            {t('editor.filters')}
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => navigation.navigate('Ocr', { uri: workUri, name: 'Image', kind: 'image' })}
+          accessibilityRole="button"
+          accessibilityLabel={t('editor.extractText')}
+          style={styles.subNavItem}
+        >
+          <ScanText size={16} color={theme.colors.textSecondary} />
+          <Text variant="callout" style={[styles.subNavText, { color: theme.colors.textSecondary }]}>
+            OCR
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={undo}
+          disabled={!undoStack.length}
+          accessibilityRole="button"
+          accessibilityLabel={t('editor.undo')}
+          style={[styles.subNavItem, { opacity: undoStack.length ? 1 : 0.35 }]}
+        >
+          <Undo2 size={16} color={theme.colors.textSecondary} />
+          <Text variant="callout" style={[styles.subNavText, { color: theme.colors.textSecondary }]}>
+            {t('editor.undo')}
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={redo}
+          disabled={!redoStack.length}
+          accessibilityRole="button"
+          accessibilityLabel={t('editor.redo')}
+          style={[styles.subNavItem, { opacity: redoStack.length ? 1 : 0.35 }]}
+        >
+          <Redo2 size={16} color={theme.colors.textSecondary} />
+          <Text variant="callout" style={[styles.subNavText, { color: theme.colors.textSecondary }]}>
+            {t('editor.redo')}
+          </Text>
+        </Pressable>
+      </View>
+
+      {/* 3. Document Preview Area - Dominates 60-70% of the screen */}
       <View style={styles.canvasArea} onLayout={onLayout}>
         {frame && rot ? (
           mode === 'crop' ? (
@@ -382,11 +514,15 @@ export function EditorScreen({ route, navigation }: RootScreenProps<'Editor'>) {
                 source={{ uri: workUri }}
                 style={{
                   position: 'absolute',
-                  left: frame.x,
-                  top: frame.y,
-                  width: frame.w,
-                  height: frame.h,
-                  transform: [{ rotate: `${rotation}deg` }],
+                  left: isRotated90or270 ? frame.x + (frame.w - frame.h) / 2 : frame.x,
+                  top: isRotated90or270 ? frame.y + (frame.h - frame.w) / 2 : frame.y,
+                  width: isRotated90or270 ? frame.h : frame.w,
+                  height: isRotated90or270 ? frame.w : frame.h,
+                  transform: [
+                    { rotate: `${rotation}deg` },
+                    { scaleX: flipH ? -1 : 1 },
+                    { scaleY: flipV ? -1 : 1 },
+                  ],
                 }}
                 resizeMode="stretch"
               />
@@ -397,32 +533,31 @@ export function EditorScreen({ route, navigation }: RootScreenProps<'Editor'>) {
               <Handle p={bl} frame={frame} />
             </>
           ) : (
-            <Canvas
-              style={[
-                StyleSheet.absoluteFill,
-                {
-                  transform: [
+            <Canvas style={StyleSheet.absoluteFill}>
+              {skImage ? (
+                <Group
+                  origin={{ x: frame.x + frame.w / 2, y: frame.y + frame.h / 2 }}
+                  transform={[
+                    { rotate: (rotation * Math.PI) / 180 },
                     { scaleX: !comparing && flipH ? -1 : 1 },
                     { scaleY: !comparing && flipV ? -1 : 1 },
-                  ],
-                },
-              ]}
-            >
-              {skImage ? (
-                <SkiaImage
-                  image={skImage}
-                  x={frame.x}
-                  y={frame.y}
-                  width={frame.w}
-                  height={frame.h}
-                  fit="fill"
+                  ]}
                 >
-                  <ColorMatrix matrix={displayMatrix} />
-                  {displaySigma > 0 ? <Blur blur={displaySigma} /> : null}
-                  {showTone && TONE_EFFECT ? (
-                    <RuntimeShader source={TONE_EFFECT} uniforms={{ shadows, highlights }} />
-                  ) : null}
-                </SkiaImage>
+                  <SkiaImage
+                    image={skImage}
+                    x={isRotated90or270 ? frame.x + (frame.w - frame.h) / 2 : frame.x}
+                    y={isRotated90or270 ? frame.y + (frame.h - frame.w) / 2 : frame.y}
+                    width={isRotated90or270 ? frame.h : frame.w}
+                    height={isRotated90or270 ? frame.w : frame.h}
+                    fit="fill"
+                  >
+                    <ColorMatrix matrix={displayMatrix} />
+                    {displaySigma > 0 ? <Blur blur={displaySigma} /> : null}
+                    {showTone && TONE_EFFECT ? (
+                      <RuntimeShader source={TONE_EFFECT} uniforms={{ shadows, highlights }} />
+                    ) : null}
+                  </SkiaImage>
+                </Group>
               ) : null}
             </Canvas>
           )
@@ -431,90 +566,212 @@ export function EditorScreen({ route, navigation }: RootScreenProps<'Editor'>) {
         )}
       </View>
 
-      <View style={[styles.toolbar, { borderTopColor: theme.colors.border }]}>
+      {/* 4. Streamlined Bottom Controls */}
+      <View style={[styles.controlsArea, { borderTopColor: theme.colors.border }]}>
         {mode === 'crop' ? (
           <>
-            <View style={styles.tools}>
-              <Button
-                title={t('editor.rotate')}
-                icon={RotateCw}
-                variant="secondary"
-                fullWidth={false}
-                style={styles.tool}
+            <Text variant="caption" style={[styles.hint, { color: theme.colors.textTertiary }]}>
+              {flipH || flipV ? t('editor.flipHint') : t('editor.cropHint')}
+            </Text>
+
+            {/* Compact Quick Actions Row: Rotate, Flip H, Flip V, More */}
+            <View style={styles.quickBar}>
+              <Pressable
                 onPress={() => {
                   commit();
                   setRotation(r => (r + 90) % 360);
                 }}
-              />
-              <Button
-                title={t('editor.reset')}
-                icon={RefreshCcw}
-                variant="secondary"
-                fullWidth={false}
-                style={styles.tool}
-                onPress={resetCorners}
-              />
-            </View>
-            <View style={styles.tools}>
-              <Button
-                title={t('editor.flipH')}
-                icon={FlipHorizontal2}
-                variant={flipH ? 'primary' : 'secondary'}
-                fullWidth={false}
-                style={styles.tool}
+                accessibilityRole="button"
+                accessibilityLabel={t('editor.rotate')}
+                style={({ pressed }) => [
+                  styles.quickBarBtn,
+                  { backgroundColor: theme.colors.surfaceAlt },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <RotateCw size={16} color={theme.colors.text} />
+                <Text variant="caption" style={[styles.quickBarText, { color: theme.colors.text }]}>
+                  {t('editor.rotate')}
+                </Text>
+              </Pressable>
+
+              <Pressable
                 onPress={() => {
                   commit();
                   setFlipH(v => !v);
                 }}
-              />
-              <Button
-                title={t('editor.flipV')}
-                icon={FlipVertical2}
-                variant={flipV ? 'primary' : 'secondary'}
-                fullWidth={false}
-                style={styles.tool}
+                accessibilityRole="button"
+                accessibilityLabel={t('editor.flipH')}
+                style={({ pressed }) => [
+                  styles.quickBarBtn,
+                  {
+                    backgroundColor: flipH ? theme.colors.brandSubtle : theme.colors.surfaceAlt,
+                    borderColor: flipH ? theme.colors.brand : 'transparent',
+                    borderWidth: flipH ? 1 : 0,
+                  },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <FlipHorizontal2 size={16} color={flipH ? theme.colors.brand : theme.colors.text} />
+                <Text
+                  variant="caption"
+                  style={[
+                    styles.quickBarText,
+                    { color: flipH ? theme.colors.brand : theme.colors.text },
+                    flipH && { fontWeight: '700' },
+                  ]}
+                >
+                  {t('editor.flipH')}
+                </Text>
+              </Pressable>
+
+              <Pressable
                 onPress={() => {
                   commit();
                   setFlipV(v => !v);
                 }}
-              />
+                accessibilityRole="button"
+                accessibilityLabel={t('editor.flipV')}
+                style={({ pressed }) => [
+                  styles.quickBarBtn,
+                  {
+                    backgroundColor: flipV ? theme.colors.brandSubtle : theme.colors.surfaceAlt,
+                    borderColor: flipV ? theme.colors.brand : 'transparent',
+                    borderWidth: flipV ? 1 : 0,
+                  },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <FlipVertical2 size={16} color={flipV ? theme.colors.brand : theme.colors.text} />
+                <Text
+                  variant="caption"
+                  style={[
+                    styles.quickBarText,
+                    { color: flipV ? theme.colors.brand : theme.colors.text },
+                    flipV && { fontWeight: '700' },
+                  ]}
+                >
+                  {t('editor.flipV')}
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => setMoreMenuVisible(true)}
+                accessibilityRole="button"
+                accessibilityLabel={t('editor.more') || 'More'}
+                style={({ pressed }) => [
+                  styles.quickBarBtn,
+                  { backgroundColor: theme.colors.surfaceAlt },
+                  cleanOn && { borderColor: theme.colors.brand, borderWidth: 1 },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <MoreHorizontal size={16} color={cleanOn ? theme.colors.brand : theme.colors.text} />
+                <Text
+                  variant="caption"
+                  style={[
+                    styles.quickBarText,
+                    { color: cleanOn ? theme.colors.brand : theme.colors.text },
+                    cleanOn && { fontWeight: '700' },
+                  ]}
+                >
+                  {t('editor.more') || 'More'}
+                </Text>
+                {cleanOn && <View style={[styles.activeDot, { backgroundColor: theme.colors.brand }]} />}
+              </Pressable>
             </View>
-            <Button
-              title={cleanOn ? t('editor.cleanupOn') : t('editor.cleanup')}
-              icon={Sparkles}
-              variant={cleanOn ? 'primary' : 'secondary'}
-              loading={cleaning}
-              onPress={toggleClean}
-              style={styles.cleanupBtn}
-            />
+
+            {/* Aspect Ratio Horizontally Scrollable Compact Chips */}
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.ratios}
+              contentContainerStyle={styles.ratioChipsContainer}
+              style={styles.ratioScroll}
             >
-              {CROP_RATIOS.map(r => (
-                <Pressable
-                  key={r.label}
-                  onPress={() => applyRatio(r.ar)}
-                  accessibilityRole="button"
-                  accessibilityLabel={r.label}
-                  style={[
-                    styles.ratioChip,
-                    { borderColor: theme.colors.border, borderRadius: theme.radius.sm },
-                  ]}
-                >
-                  <Text variant="label" color="textSecondary">
-                    {r.label}
-                  </Text>
-                </Pressable>
-              ))}
+              {CROP_RATIOS.map(r => {
+                const isSelected = selectedRatio === r.label;
+                return (
+                  <Pressable
+                    key={r.label}
+                    onPress={() => {
+                      setSelectedRatio(r.label);
+                      applyRatio(r.ar);
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel={r.label}
+                    style={[
+                      styles.ratioChip,
+                      {
+                        backgroundColor: isSelected ? theme.colors.brand : theme.colors.surfaceAlt,
+                        borderColor: isSelected ? theme.colors.brand : theme.colors.border,
+                      },
+                    ]}
+                  >
+                    <Text
+                      variant="label"
+                      style={[
+                        styles.ratioChipText,
+                        { color: isSelected ? '#FFFFFF' : theme.colors.textSecondary },
+                        isSelected && { fontWeight: '700' },
+                      ]}
+                    >
+                      {r.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </ScrollView>
-            <Text variant="caption" color="textTertiary" style={styles.hint}>
-              {flipH || flipV ? t('editor.flipHint') : t('editor.cropHint')}
-            </Text>
           </>
         ) : (
           <>
+            {/* Filter Mode Quick Actions */}
+            <View style={styles.quickBar}>
+              <Pressable
+                onPress={autoEnhance}
+                style={[styles.quickBarBtn, { backgroundColor: theme.colors.surfaceAlt }]}
+              >
+                <Wand2 size={16} color={theme.colors.brand} />
+                <Text variant="caption" style={[styles.quickBarText, { color: theme.colors.brand, fontWeight: '700' }]}>
+                  {t('editor.autoEnhance')}
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPressIn={() => setComparing(true)}
+                onPressOut={() => setComparing(false)}
+                style={[
+                  styles.quickBarBtn,
+                  { backgroundColor: comparing ? theme.colors.surfaceSunken : theme.colors.surfaceAlt },
+                ]}
+              >
+                <Eye size={16} color={theme.colors.text} />
+                <Text variant="caption" style={[styles.quickBarText, { color: theme.colors.text }]}>
+                  {t('editor.compare')}
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => {
+                  commit();
+                  setFilter('original');
+                  setBrightness(0);
+                  setContrast(0);
+                  setSaturation(0);
+                  setWarmth(0);
+                  setDetail(0);
+                  setShadows(0);
+                  setHighlights(0);
+                }}
+                style={[styles.quickBarBtn, { backgroundColor: theme.colors.surfaceAlt }]}
+              >
+                <RotateCcw size={16} color={theme.colors.text} />
+                <Text variant="caption" style={[styles.quickBarText, { color: theme.colors.text }]}>
+                  {t('editor.reset')}
+                </Text>
+              </Pressable>
+            </View>
+
+            {/* Filter Presets Thumbnails */}
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -534,34 +791,8 @@ export function EditorScreen({ route, navigation }: RootScreenProps<'Editor'>) {
                 />
               ))}
             </ScrollView>
-            <View style={styles.tools}>
-              <Button
-                title={t('editor.autoEnhance')}
-                icon={Wand2}
-                variant="secondary"
-                fullWidth={false}
-                style={styles.tool}
-                onPress={autoEnhance}
-              />
-              <Pressable
-                onPressIn={() => setComparing(true)}
-                onPressOut={() => setComparing(false)}
-                accessibilityRole="button"
-                accessibilityLabel={t('editor.compare')}
-                style={[
-                  styles.tool,
-                  styles.compareBtn,
-                  {
-                    borderColor: theme.colors.borderStrong,
-                    borderRadius: theme.radius.md,
-                    backgroundColor: comparing ? theme.colors.surfaceSunken : theme.colors.surface,
-                  },
-                ]}
-              >
-                <Eye size={theme.iconSize.sm} color={theme.colors.text} />
-                <Text variant="bodyStrong">{t('editor.compare')}</Text>
-              </Pressable>
-            </View>
+
+            {/* Fine-Tuning Sliders */}
             <ScrollView style={styles.sliderScroll} nestedScrollEnabled showsVerticalScrollIndicator={false}>
               <Slider label={t('editor.brightness')} value={brightness} onChange={setBrightness} onCommit={commit} />
               <Slider label={t('editor.contrast')} value={contrast} onChange={setContrast} onCommit={commit} />
@@ -573,44 +804,39 @@ export function EditorScreen({ route, navigation }: RootScreenProps<'Editor'>) {
             </ScrollView>
           </>
         )}
-        <Button title={t('editor.apply')} icon={Check} onPress={confirm} />
-      </View>
-    </Screen>
-  );
-}
 
-function SegTabs({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => void }) {
-  const theme = useTheme();
-  const t = useT();
-  const tabs: { key: Mode; label: string; icon: typeof Crop }[] = [
-    { key: 'crop', label: t('editor.crop'), icon: Crop },
-    { key: 'filter', label: t('editor.filters'), icon: SlidersHorizontal },
-  ];
-  return (
-    <View style={[styles.seg, { backgroundColor: theme.colors.surfaceSunken, borderRadius: theme.radius.md }]}>
-      {tabs.map(t => {
-        const active = mode === t.key;
-        return (
-          <Pressable
-            key={t.key}
-            onPress={() => onChange(t.key)}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: active }}
-            style={[
-              styles.segItem,
-              { borderRadius: theme.radius.md - 3 },
-              active && { backgroundColor: theme.colors.surface },
-              active && theme.elevation(1),
-            ]}
+        {/* 5. Fixed Prominent Bottom Action: Apply Crop / Apply Filters */}
+        <Pressable
+          onPress={confirm}
+          accessibilityRole="button"
+          accessibilityLabel={mode === 'crop' ? t('editor.applyCrop') : t('editor.applyFilters')}
+          style={({ pressed }) => [
+            styles.applyButton,
+            pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] },
+          ]}
+        >
+          <LinearGradient
+            colors={theme.colors.brandGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.applyGradient}
           >
-            <t.icon size={16} color={active ? theme.colors.brand : theme.colors.textSecondary} />
-            <Text variant="callout" color={active ? 'brand' : 'textSecondary'}>
-              {t.label}
+            <Check size={20} color="#FFFFFF" strokeWidth={2.5} />
+            <Text variant="bodyStrong" style={styles.applyText}>
+              {mode === 'crop' ? t('editor.applyCrop') : t('editor.applyFilters')}
             </Text>
-          </Pressable>
-        );
-      })}
-    </View>
+          </LinearGradient>
+        </Pressable>
+      </View>
+
+      {/* Secondary Actions Modal */}
+      <ActionSheet
+        visible={moreMenuVisible}
+        title={t('editor.more')}
+        onClose={() => setMoreMenuVisible(false)}
+        actions={moreActions}
+      />
+    </Screen>
   );
 }
 
@@ -643,7 +869,7 @@ function FilterThumb({
       >
         <Canvas style={StyleSheet.absoluteFill}>
           {image ? (
-            <SkiaImage image={image} x={0} y={0} width={64} height={80} fit="cover">
+            <SkiaImage image={image} x={0} y={0} width={54} height={68} fit="cover">
               <ColorMatrix matrix={matrix} />
             </SkiaImage>
           ) : null}
@@ -680,8 +906,8 @@ function QuadOverlay({
   );
   return (
     <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
-      <Path path={path} color="rgba(46,107,255,0.14)" style="fill" />
-      <Path path={path} color={color} style="stroke" strokeWidth={2} />
+      <Path path={path} color="rgba(123,97,255,0.18)" style="fill" />
+      <Path path={path} color={color} style="stroke" strokeWidth={2.5} />
     </Canvas>
   );
 }
@@ -718,50 +944,152 @@ function Handle({
 }
 
 const styles = StyleSheet.create({
-  headerPad: { paddingHorizontal: 20 },
-  seg: { flexDirection: 'row', padding: 3, marginBottom: 8 },
-  segItem: {
-    flex: 1,
+  topHeader: {
+    height: 48,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 8,
+    justifyContent: 'space-between',
   },
-  tabRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  segWrap: { flex: 1 },
-  iconBtn: {
+  headerBtn: {
     width: 40,
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  subNavBar: {
+    height: 42,
+    paddingHorizontal: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  subNavItem: {
+    flex: 1,
+    height: 34,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    borderRadius: 8,
+    marginHorizontal: 2,
+  },
+  subNavActiveItem: {
+    borderRadius: 8,
+  },
+  subNavText: {
+    fontSize: 13,
+  },
+  subNavActiveText: {
+    fontWeight: '700',
+  },
+  canvasArea: {
+    flex: 1,
+    marginHorizontal: 12,
+    marginVertical: 4,
+  },
+  controlsArea: {
+    paddingHorizontal: 16,
+    paddingTop: 6,
+    paddingBottom: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  hint: {
+    textAlign: 'center',
+    fontSize: 12,
+    marginBottom: 6,
+  },
+  quickBar: {
+    flexDirection: 'row',
+    gap: 8,
     marginBottom: 8,
   },
-  sliderScroll: { maxHeight: 240 },
-  cleanupBtn: { marginBottom: 12 },
-  ratios: { gap: 8, paddingVertical: 4, marginBottom: 12 },
+  quickBarBtn: {
+    flex: 1,
+    height: 38,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    borderRadius: 10,
+  },
+  quickBarText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  activeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    position: 'absolute',
+    top: 6,
+    right: 8,
+  },
+  ratioScroll: {
+    maxHeight: 34,
+    marginBottom: 10,
+  },
+  ratioChipsContainer: {
+    gap: 8,
+    paddingHorizontal: 2,
+    alignItems: 'center',
+  },
   ratioChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 8,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  compareBtn: {
+  ratioChipText: {
+    fontSize: 12,
+  },
+  applyButton: {
+    width: '100%',
+    height: 48,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  applyGradient: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    height: 54,
-    borderWidth: StyleSheet.hairlineWidth,
   },
-  canvasArea: { flex: 1, margin: 12 },
-  toolbar: { padding: 20, borderTopWidth: StyleSheet.hairlineWidth },
-  tools: { flexDirection: 'row', gap: 12, marginBottom: 12 },
-  tool: { flex: 1 },
-  hint: { textAlign: 'center', marginBottom: 12 },
-  thumbs: { gap: 12, paddingVertical: 4, paddingRight: 8, marginBottom: 12 },
-  thumb: { alignItems: 'center', width: 64 },
-  thumbImg: { width: 64, height: 80, overflow: 'hidden' },
-  thumbLabel: { marginTop: 6 },
+  applyText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  sliderScroll: {
+    maxHeight: 130,
+    marginBottom: 8,
+  },
+  thumbs: {
+    gap: 10,
+    paddingVertical: 4,
+    paddingRight: 8,
+    marginBottom: 8,
+  },
+  thumb: {
+    alignItems: 'center',
+    width: 54,
+  },
+  thumbImg: {
+    width: 54,
+    height: 68,
+    overflow: 'hidden',
+  },
+  thumbLabel: {
+    marginTop: 4,
+    fontSize: 11,
+  },
   touch: {
     position: 'absolute',
     width: TOUCH,
@@ -774,7 +1102,12 @@ const styles = StyleSheet.create({
     height: HANDLE,
     borderRadius: HANDLE / 2,
     backgroundColor: '#FFFFFF',
-    borderWidth: 3,
-    borderColor: '#2E6BFF',
+    borderWidth: 3.5,
+    borderColor: '#7B61FF',
+    elevation: 4,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 3,
   },
 });

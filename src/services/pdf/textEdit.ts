@@ -19,7 +19,11 @@ export type PdfTextEdit = {
   w: number;
   fontSize: number;
   fontName: string;
+  fontFamily?: string;
+  isBold?: boolean;
+  isItalic?: boolean;
   color?: string;
+  bgColor?: string;
 };
 
 // RN has no Buffer — do latin1 <-> hex manually.
@@ -42,17 +46,20 @@ function hexToRgb(hexColor: string) {
   return rgb(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255);
 }
 
-function pickFont(fontName: string) {
-  const n = fontName.toLowerCase();
-  const bold = /bold|black|heavy|semibold/.test(n);
-  const italic = /italic|oblique/.test(n);
-  if (/times|serif|georgia|roman|minion|garamond/.test(n)) {
+function pickFont(fontName: string, fontFamily?: string, isBold?: boolean, isItalic?: boolean) {
+  const n = (fontName + ' ' + (fontFamily || '')).toLowerCase();
+  const bold = isBold ?? /bold|black|heavy|semibold|700|800|900/.test(n);
+  const italic = isItalic ?? /italic|oblique/.test(n);
+  const serif = /times|serif|georgia|roman|minion|garamond|cambria/.test(n) || fontFamily === 'serif';
+  const mono = /courier|mono|consol|code/.test(n) || fontFamily === 'monospace';
+
+  if (serif) {
     if (bold && italic) return StandardFonts.TimesRomanBoldItalic;
     if (bold) return StandardFonts.TimesRomanBold;
     if (italic) return StandardFonts.TimesRomanItalic;
     return StandardFonts.TimesRoman;
   }
-  if (/courier|mono|consol/.test(n)) {
+  if (mono) {
     if (bold && italic) return StandardFonts.CourierBoldOblique;
     if (bold) return StandardFonts.CourierBold;
     if (italic) return StandardFonts.CourierOblique;
@@ -113,25 +120,49 @@ export async function applyTextEdits(pdfUri: string, edits: PdfTextEdit[]): Prom
     // 1) try REAL content-stream edit (removes original, keeps vector)
     if (tryStreamEdit(page, e.orig, e.newText)) continue;
 
-    // 2) fallback: overlay (cover the run + redraw in closest standard font)
+    // 2) fallback: overlay (cover the run with background color + redraw in closest standard font)
     const pageH = page.getHeight();
     const baseline = pageH - e.yTop;
-    const pad = e.fontSize * 0.15;
-    page.drawRectangle({
-      x: e.x - pad,
-      y: baseline - e.fontSize * 0.28,
-      width: e.w + pad * 2,
-      height: e.fontSize * 1.25,
-      color: rgb(1, 1, 1),
-    });
+    const padX = Math.max(2, e.fontSize * 0.12);
+    const padY = Math.max(1, e.fontSize * 0.15);
+
+    const key = pickFont(e.fontName, e.fontFamily, e.isBold, e.isItalic);
+    let font: Awaited<ReturnType<typeof pdf.embedFont>> | undefined;
+    let newW = 0;
     if (e.newText) {
-      const key = pickFont(e.fontName);
-      let font = fontCache.get(key);
+      font = fontCache.get(key);
       if (!font) {
         font = await pdf.embedFont(key);
         fontCache.set(key, font);
       }
-      page.drawText(e.newText, { x: e.x, y: baseline, size: e.fontSize, font, color: hexToRgb(e.color ?? '#111111') });
+      try {
+        newW = font.widthOfTextAtSize(e.newText, e.fontSize);
+      } catch {
+        newW = e.newText.length * e.fontSize * 0.55;
+      }
+    }
+
+    const coverWidth = Math.max(e.w, newW) + padX * 2;
+    const coverHeight = e.fontSize * 1.35;
+    const coverY = baseline - e.fontSize * 0.32;
+
+    // Mask previous text completely so it is NEVER seen
+    page.drawRectangle({
+      x: e.x - padX,
+      y: coverY,
+      width: coverWidth,
+      height: coverHeight,
+      color: hexToRgb(e.bgColor ?? '#ffffff'),
+    });
+
+    if (e.newText && font) {
+      page.drawText(e.newText, {
+        x: e.x,
+        y: baseline,
+        size: e.fontSize,
+        font,
+        color: hexToRgb(e.color ?? '#111111'),
+      });
     }
   }
 
